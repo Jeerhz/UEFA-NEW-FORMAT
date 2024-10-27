@@ -34,7 +34,7 @@ all_teams = [
     "Atalanta", "Juventus", "Benfica", "Arsenal", "Club Brugge", "Shakhtar Donetsk",
     "AC Milan", "Feyenoord", "Sporting CP", "PSV Eindhoven", "Red Bull Salzburg", "Crvena Zvezda",
     "Young Boys", "Celtic", "Slovan Bratislava", "Sparta Praha", "Aston Villa", "Bologna",
-    "Girona", "Stuttgart", "Sturm Graz", "Dinamo"
+    "Girona", "Stuttgart", "Sturm Graz", "Dinamo Zagreb"
 ]
 
 #Report des scores elo
@@ -475,107 +475,16 @@ Dinamo_matches = [
 
 li_li_matches = [Real_matches, ManCity_matches, Bayern_matches, PSG_matches, Monaco_matches, Lille_matches, Brest_matches, Liverpool_matches, Inter_matches, Dortmund_matches, Leipzig_matches, Barcelona_matches, Leverkusen_matches, Atletico_matches, Atalanta_matches, Juventus_matches, Benfica_matches, Arsenal_matches, Brugge_matches, Shakhtar_matches, Milan_matches, Feyenoord_matches, Sporting_matches, Eindhoven_matches, Salzburg_matches, Crvena_matches, YB_matches, Celtic_matches, Bratislava_matches, Sparta_matches, Astonvilla_matches, Bologna_matches, Girona_matches, Stuttgart_matches, Sturmgraz_matches, Dinamo_matches]
 
+# Calcul des points
+Result_tirage = {}
+for team_name in all_teams:
+    Result_tirage[team_name] = 0
 
-# List of probability functions according to elo ratings
-def sigma(r, kappa):
-    return 1 / ((10 **((r)/ 400) )+ (10 **((-r)/ 400)) + kappa)
+for matches in li_li_matches:
+    for match in matches:
+        Result_tirage[match.club_home.name] += match.club_away.elo/2
+        Result_tirage[match.club_away.name] += match.club_home.elo/2
 
-def proba_win(elohome, eloaway, kappa, hfa):
-    '''Compute the probability of winning for the home team'''
-    r = elohome - eloaway + hfa
-    return sigma(r, kappa)
-
-def proba_lose(elohome, eloaway, kappa, hfa):
-    '''Compute the probability of losing for the home team'''
-    r = elohome - eloaway + hfa
-    return sigma(-r, kappa)
-
-def proba_draw(elohome, eloaway, kappa, hfa):
-    '''Compute the probability of a draw'''
-    r = elohome - eloaway + hfa
-    return kappa * math.sqrt(sigma(r, kappa) * sigma(-r, kappa))
-
-def compute_team_points(team, li_matches, kappa=1, hfa=0):
-    '''Compute the average points of a team'''
-    total_points = 0
-    for match in li_matches:
-        if match.club_home.name == team:
-            total_points += 3 * proba_win(match.club_home.elo, match.club_away.elo, kappa, hfa) + 1 * proba_draw(match.club_home.elo, match.club_away.elo, kappa, hfa)
-        else:
-            total_points += 3 * proba_lose(match.club_home.elo, match.club_away.elo, kappa, hfa) + 1 * proba_draw(match.club_home.elo, match.club_away.elo, kappa, hfa)
-    return total_points
+print(Result_tirage)
 
 
-import matplotlib.pyplot as plt
-def plot_bar_chart():
-    # Compute the points of each team
-    team_names = []
-    team_points = []
-    for k in range(36):
-        team_name = all_teams[k]
-        li_matches = li_li_matches[k]
-        points = compute_team_points(team_name, li_matches)
-        team_names.append(team_name)
-        team_points.append(points)
-
-    # Plot the bar graph
-    plt.figure(figsize=(10, 6))
-    plt.bar(team_names, team_points)
-    plt.xlabel('Team Name')
-    plt.ylabel('Points')
-    plt.title('Points of Each Team')
-    plt.xticks(rotation=90)
-    plt.show()
-    return None
-
-
-import pandas as pd
-def save_team_ranking(kappa=1, hfa=0):
-    # Compute the points of each team
-    team_data = []
-    for k in range(36):
-        team_name = all_teams[k]
-        li_matches = li_li_matches[k]
-        points = compute_team_points(team_name, li_matches, kappa, hfa)
-        team_data.append((team_name, points))
-
-    # Sort the teams in descending order of points
-    team_data.sort(key=lambda x: x[1], reverse=True)
-
-    # Separate the team names and points into separate lists
-    team_names = [data[0] for data in team_data]
-    team_points = [data[1] for data in team_data]
-
-    # Create a DataFrame with the team names and points
-    df = pd.DataFrame({'Team Name': team_names, 'Points': team_points})
-
-    # Save the DataFrame to an Excel file
-    df.to_excel('team_ranking.xlsx', index=False)
-    return None
-
-
-def ecart_moyen():
-    ecart_moyen = 0
-    for k in range(36):
-        li_matches = li_li_matches[k]
-        team_name = all_teams[k]
-        for match in li_matches:
-            ecart_moyen += abs(match.club_home.elo - match.club_away.elo)
-
-    ecart_moyen = ecart_moyen/(36*8)
-    print(ecart_moyen)
-    return ecart_moyen
-
-
-print(proba_win(2000, 1900, 0, 0))
-
-###### TESTS ######
-assert proba_win(2000, 1900, 0, 0) > 0.5
-assert proba_win(1900, 2000, 0, 0) < 0.5
-
-
-
-print(proba_draw(1130, 1000, 0.7, 0))
-ecart_moyen()
-plot_bar_chart()
-save_team_ranking(1, 0)
