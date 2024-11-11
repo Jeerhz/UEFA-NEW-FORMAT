@@ -58,27 +58,29 @@
     <script>
         // Correspondance entre les équipes et leurs sommets
         const teamMap = {
-            8: "Man City (1)", 1: "Bayern (2)", 2: "Liverpool (3)", 5: "Real (4)", 9: "PSG (5)",
-            4: "Man United (6)", 3: "Barcelona (7)", 6: "Inter (8)", 7: "Sevilla (9)", 12: "Dortmund (10)",
-            11: "Atletico (11)", 13: "Leipzig (12)", 14: "Benfica (13)", 10: "Napoli (14)", 17: "Porto (15)",
-            16: "Arsenal (16)", 15: "Shakhtar (17)", 18: "Salzburg (18)", 25: "Atalanta (19)", 19: "Feyenoord (20)",
-            21: "Milan (21)", 20: "Braga (22)", 22: "Eindhoven (23)", 23: "Lazio (24)", 24: "Crvena (25)",
-            26: "Copenhagen (26)", 27: "YB (27)", 36: "Sociedad (28)", 28: "Marseille (29)", 29: "Galatasaray (30)",
-            30: "Celtic (31)", 32: "Qarabag (32)", 33: "Newcastle (33)", 34: "Berlin (34)", 35: "Antwerp (35)",
-            31: "Lens (36)"
-        };
+    8: "Real", 5: "Man City", 6: "Bayern", 7: "PSG", 1: "Liverpool",
+    9: "Inter", 2: "Dortmund", 4: "Leipzig", 3: "Barcelona", 16: "Leverkusen",
+    11: "Atlético", 10: "Atalanta", 13: "Juventus", 14: "Benfica", 12: "Arsenal",
+    15: "Brugge", 18: "Shakhtar", 17: "Milan", 21: "Feyenoord", 19: "Sporting",
+    22: "Eindhoven", 24: "Dinamo", 23: "Salzburg", 20: "Lille", 25: "Crvena",
+    26: "YB", 27: "Celtic", 32: "Bratislava", 28: "Monaco", 35: "Sparta",
+    34: "Aston Villa", 30: "Bologna", 33: "Girona", 36: "Stuttgart", 29: "Sturm Graz",
+    31: "Brest"
+};
+
 
         // Couleurs des groupes
         const groupColors = {
-            "Man City (1)": "red", "Bayern (2)": "red", "Liverpool (3)": "red", "Real (4)": "red", "PSG (5)": "red",
-            "Man United (6)": "red", "Barcelona (7)": "red", "Inter (8)": "red", "Sevilla (9)": "red",
-            "Dortmund (10)": "blue", "Atletico (11)": "blue", "Leipzig (12)": "blue", "Benfica (13)": "blue", "Napoli (14)": "blue",
-            "Porto (15)": "blue", "Arsenal (16)": "blue", "Shakhtar (17)": "blue", "Salzburg (18)": "blue",
-            "Atalanta (19)": "green", "Feyenoord (20)": "green", "Milan (21)": "green", "Braga (22)": "green", "Eindhoven (23)": "green",
-            "Lazio (24)": "green", "Crvena (25)": "green", "Copenhagen (26)": "green", "YB (27)": "green",
-            "Sociedad (28)": "purple", "Marseille (29)": "purple", "Galatasaray (30)": "purple", "Celtic (31)": "purple",
-            "Qarabag (32)": "purple", "Newcastle (33)": "purple", "Berlin (34)": "purple", "Antwerp (35)": "purple", "Lens (36)": "purple"
-        };
+    "Real": "red", "Man City": "red", "Bayern": "red", "PSG": "red", "Liverpool": "red",
+    "Inter": "red", "Dortmund": "red", "Leipzig": "red", "Barcelona": "red", "Leverkusen": "red",
+    "Atlético": "blue", "Atalanta": "blue", "Juventus": "blue", "Benfica": "blue", "Arsenal": "blue",
+    "Brugge": "blue", "Shakhtar": "blue", "Milan": "blue", "Feyenoord": "green", "Sporting": "green",
+    "Eindhoven": "green", "Dinamo": "green", "Salzburg": "green", "Lille": "green", "Crvena": "green",
+    "YB": "green", "Celtic": "green", "Bratislava": "purple", "Monaco": "purple", "Sparta": "purple",
+    "Aston Villa": "purple", "Bologna": "purple", "Girona": "purple", "Stuttgart": "purple", "Sturm Graz": "purple",
+    "Brest": "purple"
+};
+
 
         // Fonction pour générer les nœuds avec les labels des équipes et les couleurs des groupes
         function generateNodes() {
@@ -167,7 +169,7 @@
             const options = {
                 nodes: {
                     font: {
-                        size: 16
+                        size: 30
                     },
                     scaling: {
                         min: 16,

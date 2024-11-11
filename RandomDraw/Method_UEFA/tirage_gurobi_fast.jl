@@ -89,8 +89,6 @@ pot4 = (
 const teams = create_teams_container(pot1, pot2, pot3, pot4)
 
 
-
-
 #################### TYPE DE TEAMS  #################################################################
 
 function create_club_index(teams::TeamsContainer)::Dict{String, Int}

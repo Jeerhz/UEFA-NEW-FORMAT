@@ -8,27 +8,27 @@ struct Team
 end
 
 struct TeamsContainer
-    pot1::NTuple{9, Team}
-    pot2::NTuple{9, Team}
-    pot3::NTuple{9, Team}
-    pot4::NTuple{9, Team}
-    index::Dict{String, Team}
+    pot1::NTuple{9,Team}
+    pot2::NTuple{9,Team}
+    pot3::NTuple{9,Team}
+    pot4::NTuple{9,Team}
+    index::Dict{String,Team}
 end
 
 struct Constraint
     played_home::Set{String}
     played_ext::Set{String}
-    nationalities::Dict{String, Int}
+    nationalities::Dict{String,Int}
 end
 
 const env = Gurobi.Env() # environnement fo Gurobi
 
 # to create an instance of TeamsContainer
 function create_teams_container(
-    pot1::NTuple{9, Team},
-    pot2::NTuple{9, Team},
-    pot3::NTuple{9, Team},
-    pot4::NTuple{9, Team}
+    pot1::NTuple{9,Team},
+    pot2::NTuple{9,Team},
+    pot3::NTuple{9,Team},
+    pot4::NTuple{9,Team}
 )::TeamsContainer
     # Build the index dictionary by iterating over each pot
     index = Dict(team.club => team for pot in (pot1, pot2, pot3, pot4) for team in pot)
@@ -93,8 +93,8 @@ const teams = create_teams_container(pot1, pot2, pot3, pot4)
 
 #################### TYPE DE TEAMS  #################################################################
 
-function create_club_index(teams::TeamsContainer)::Dict{String, Int}
-    club_index = Dict{String, Int}()
+function create_club_index(teams::TeamsContainer)::Dict{String,Int}
+    club_index = Dict{String,Int}()
     for (i, pot) in enumerate((teams.pot1, teams.pot2, teams.pot3, teams.pot4))
         for (j, team) in enumerate(pot)
             club_index[team.club] = (i - 1) * 9 + j
@@ -149,8 +149,8 @@ function get_team(team_name::String)::Team
 end
 
 
-function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{String})::Dict{String, Constraint}
-    constraints = Dict{String, Constraint}()
+function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{String})::Dict{String,Constraint}
+    constraints = Dict{String,Constraint}()
     for pot in (teams.pot1, teams.pot2, teams.pot3, teams.pot4)
         for team in pot
             # Initialize all nationalities to 0 for each team
@@ -170,7 +170,7 @@ function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{St
 end
 
 
-function update_constraints(home::Team, away::Team, constraints::Dict{String, Constraint})
+function update_constraints(home::Team, away::Team, constraints::Dict{String,Constraint})
     push!(constraints[home.club].played_home, away.club)
     push!(constraints[away.club].played_ext, home.club)
     constraints[home.club].nationalities[away.nationality] += 1
@@ -191,12 +191,12 @@ function silence_output(f::Function)
 end
 
 
-function solve_problem(selected_team::Team, constraints::Dict{String, Constraint}, new_match::NTuple{2, Team})::Bool
+function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}, new_match::NTuple{2,Team})::Bool
     model = Model(Gurobi.Optimizer; add_bridges=false)
     set_optimizer_attribute(model, "Seed", rand(1:1000000000)) # random solution
     set_optimizer_attribute(model, "OutputFlag", 0)
     set_optimizer_attribute(model, "LogToConsole", 0) # No logging to consol
-    T=8
+    T = 8
 
     @variable(model, match_vars[1:36, 1:36, 1:8], Bin)
 
@@ -204,15 +204,15 @@ function solve_problem(selected_team::Team, constraints::Dict{String, Constraint
     @objective(model, Max, 0)
 
     # General constraints
-    @constraint(model, [i=1:36], sum(match_vars[i, i, t] for t in 1:8) == 0) # A team cannot play against itself
+    @constraint(model, [i = 1:36], sum(match_vars[i, i, t] for t in 1:8) == 0) # A team cannot play against itself
 
-    @constraint(model, [i=1:36, j=1:36; i != j], sum(match_vars[i, j, t] + match_vars[j, i, t] for t in 1:8) <= 1)  # Each pair of teams plays at most once
+    @constraint(model, [i = 1:36, j = 1:36; i != j], sum(match_vars[i, j, t] + match_vars[j, i, t] for t in 1:8) <= 1)  # Each pair of teams plays at most once
 
 
     # Contraintes spécifiques pour chaque pot
     for pot_start in 1:9:28
-        @constraint(model, [i=1:36], sum(match_vars[i, j, t] for t in 1:8, j in pot_start:pot_start+8) == 1)
-        @constraint(model, [i=1:36], sum(match_vars[j, i, t] for t in 1:8, j in pot_start:pot_start+8) == 1)
+        @constraint(model, [i = 1:36], sum(match_vars[i, j, t] for t in 1:8, j in pot_start:pot_start+8) == 1)
+        @constraint(model, [i = 1:36], sum(match_vars[j, i, t] for t in 1:8, j in pot_start:pot_start+8) == 1)
     end
 
 
@@ -242,7 +242,7 @@ function solve_problem(selected_team::Team, constraints::Dict{String, Constraint
             for (k, pot_k) in enumerate((teams.pot1, teams.pot2, teams.pot3, teams.pot4))
                 for (l, team_l) in enumerate(pot_k)
                     if team_j.nationality == team_l.nationality && team_idx != ((k - 1) * 9 + l)
-                        @constraint(model, sum(match_vars[team_idx, (k - 1) * 9 + l, t] for t in 1:T) == 0)
+                        @constraint(model, sum(match_vars[team_idx, (k-1)*9+l, t] for t in 1:T) == 0)
                     end
                 end
             end
@@ -269,7 +269,7 @@ end
 
 #renvoie la liste des equipes du pot oppenent_group contre laquelle l'équipe selected team recoit pour jouer
 #rq on a ou bien 0 ou bien 1 équipe
-function filter_team_already_played_home(selected_team::Team, opponent_group::NTuple{9, Team}, constraints::Dict{String, Constraint})::Union{Team, Nothing}
+function filter_team_already_played_home(selected_team::Team, opponent_group::NTuple{9,Team}, constraints::Dict{String,Constraint})::Union{Team,Nothing}
     li_home_selected_team = constraints[selected_team.club].played_home
     for home_club_name in li_home_selected_team
         home_team = get_team(home_club_name)
@@ -281,7 +281,7 @@ function filter_team_already_played_home(selected_team::Team, opponent_group::NT
 end
 
 #la même mais selected team se déplace cette fois
-function filter_team_already_played_away(selected_team::Team, opponent_group::NTuple{9, Team}, constraints::Dict{String, Constraint})::Union{Team, Nothing}
+function filter_team_already_played_away(selected_team::Team, opponent_group::NTuple{9,Team}, constraints::Dict{String,Constraint})::Union{Team,Nothing}
     li_away_selected_team = constraints[selected_team.club].played_ext
     for away_club_name in li_away_selected_team
         away_team = get_team(away_club_name)
@@ -294,8 +294,8 @@ end
 
 
 
-function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9, Team}, constraints::Dict{String, Constraint})::Vector{Tuple{Team, Team}}
-    true_matches = Vector{Tuple{Team, Team}}()
+function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,Team}, constraints::Dict{String,Constraint})::Vector{Tuple{Team,Team}}
+    true_matches = Vector{Tuple{Team,Team}}()
     #Si on a déjà tirer un adversaire pour l'équipe sélectionné, on en s'embête pas à regarder tous les couples (home,away) possible
     home_team = filter_team_already_played_home(selected_team, opponent_group, constraints)
     away_team = filter_team_already_played_away(selected_team, opponent_group, constraints)
@@ -304,7 +304,7 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9, 
     if home_team != nothing && away_team != nothing && home_team != away_team
         match = (home_team, away_team)
         if home_team.nationality != selected_team.nationality && away_team.nationality != selected_team.nationality
-            if solve_problem(selected_team, constraints, match) 
+            if solve_problem(selected_team, constraints, match)
                 push!(true_matches, match)
             end
         end
@@ -313,13 +313,13 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9, 
     if home_team == nothing && away_team == nothing
         for home in opponent_group
             for away in opponent_group
-                if home != away && home.nationality != selected_team.nationality && away.nationality != selected_team.nationality&&
-                constraints[selected_team.club].nationalities[home.nationality] <= 2 &&
-                constraints[selected_team.club].nationalities[away.nationality] <= 2 &&
-                constraints[home.club].nationalities[selected_team.nationality] <= 2 &&
-                constraints[away.club].nationalities[selected_team.nationality] <= 2 &&
-                filter_team_already_played_away(home, opponent_group, constraints) == nothing  &&#On vérfie que home ne s'est pas déjà déplacé
-                filter_team_already_played_home(away, opponent_group, constraints) == nothing
+                if home != away && home.nationality != selected_team.nationality && away.nationality != selected_team.nationality &&
+                   constraints[selected_team.club].nationalities[home.nationality] <= 2 &&
+                   constraints[selected_team.club].nationalities[away.nationality] <= 2 &&
+                   constraints[home.club].nationalities[selected_team.nationality] <= 2 &&
+                   constraints[away.club].nationalities[selected_team.nationality] <= 2 &&
+                   filter_team_already_played_away(home, opponent_group, constraints) == nothing &&#On vérfie que home ne s'est pas déjà déplacé
+                   filter_team_already_played_home(away, opponent_group, constraints) == nothing
                     match = (home, away)
                     if solve_problem(selected_team, constraints, match)
                         push!(true_matches, match)
@@ -363,15 +363,14 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9, 
     return true_matches
 end
 
-function tirage_au_sort(nb_draw::Int, constraints::Dict{String, Constraint}; sequential=false)
-    elo_opponents = zeros(Float64, 36, nb_draw)  
-    uefa_opponents = zeros(Float64, 36, nb_draw) 
-    @threads for s in 1:nb_draw
-
-        matches_list = []
+function tirage_au_sort(nb_draw::Int, constraints::Dict{String,Constraint}; sequential=false)
+    elo_opponents = zeros(Float64, 36, nb_draw)
+    uefa_opponents = zeros(Float64, 36, nb_draw)
+    for s in 1:nb_draw
+        constraints = initialize_constraints(teams, all_nationalities)
         for pot_index in 1:4
             indices = shuffle!(collect(1:9))  # Mélange des indices
-            
+
             # Accès au pot correspondant dans TeamsContainer
             pot = if pot_index == 1
                 teams.pot1
@@ -385,7 +384,7 @@ function tirage_au_sort(nb_draw::Int, constraints::Dict{String, Constraint}; seq
 
             for i in indices
                 selected_team = pot[i]
-                
+
                 for idx_opponent_pot in 1:4
                     opponent_pot = if idx_opponent_pot == 1
                         teams.pot1
@@ -409,17 +408,18 @@ function tirage_au_sort(nb_draw::Int, constraints::Dict{String, Constraint}; seq
         end
     end
 
-    open("1elo_strength_opponents.txt", "a") do file  
+
+    open("1elo_strength_opponents.txt", "a") do file
         for i in 1:nb_draw
-            row = join(elo_opponents[:, i], " ")  
-            write(file, row * "\n")  
+            row = join(elo_opponents[:, i], " ")
+            write(file, row * "\n")
         end
     end
 
-    open("1uefa_strength_opponents.txt", "a") do file  
+    open("1uefa_strength_opponents.txt", "a") do file
         for i in 1:nb_draw
-            row = join(uefa_opponents[:, i], " ")  
-            write(file, row * "\n")  
+            row = join(uefa_opponents[:, i], " ")
+            write(file, row * "\n")
         end
     end
 
@@ -431,7 +431,7 @@ end
 
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul = 1
+const n_simul = 2
 
 constraints = initialize_constraints(teams, all_nationalities)
 @time begin

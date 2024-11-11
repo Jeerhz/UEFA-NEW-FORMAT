@@ -15,44 +15,44 @@ const q = 9 # number of teams per pot
 const n = 36  # number of teams (= pq)
 
 const opponents = # opponents[i] : list of placeholders connected to placeholder i
-[[18, 9, 19, 36, 11, 2, 32, 26],
- [31, 21, 3, 16, 27, 1, 14, 33],
- [10, 32, 2, 13, 26, 22, 36, 4], 
- [5, 14, 29, 35, 10, 23, 25, 3], 
- [4, 11, 22, 6, 30, 34, 13, 19], 
- [16, 27, 33, 5, 21, 29, 7, 12], 
- [20, 8, 15, 24, 28, 17, 6, 30], 
- [23, 7, 12, 25, 9, 31, 35, 18], 
- [34, 1, 17, 20, 8, 15, 24, 28], 
- [3, 35, 21, 18, 4, 32, 22, 11], 
- [12, 5, 27, 23, 1, 33, 31, 10], 
- [11, 36, 8, 26, 19, 13, 30, 6], 
- [19, 28, 14, 3, 35, 12, 5, 21], 
- [24, 4, 13, 30, 34, 20, 2, 15], 
- [33, 25, 7, 29, 16, 9, 23, 14], 
- [6, 17, 32, 2, 15, 24, 26, 34], 
- [29, 16, 9, 31, 25, 7, 18, 27], 
- [1, 22, 20, 10, 36, 28, 17, 8], 
- [13, 20, 1, 28, 12, 27, 33, 5], 
- [7, 19, 18, 9, 31, 14, 21, 35], 
- [32, 2, 10, 22, 6, 30, 20, 13], 
- [35, 18, 5, 21, 23, 3, 10, 29], 
- [8, 34, 36, 11, 22, 4, 15, 24], 
- [14, 31, 25, 7, 29, 16, 9, 23], 
- [30, 15, 24, 8, 17, 26, 4, 36], 
- [27, 33, 28, 12, 3, 25, 16, 1], 
- [26, 6, 11, 32, 2, 19, 34, 17], 
- [36, 13, 26, 19, 7, 18, 29, 9], 
- [17, 30, 4, 15, 24, 6, 28, 22], 
- [25, 29, 31, 14, 5, 21, 12, 7], 
- [2, 24, 30, 17, 20, 8, 11, 32], 
- [21, 3, 16, 27, 33, 10, 1, 31], 
- [15, 26, 6, 34, 32, 11, 19, 2], 
- [9, 23, 35, 33, 14, 5, 27, 16], 
- [22, 10, 34, 4, 13, 36, 8, 20], 
- [28, 12, 23, 1, 18, 35, 3, 25]]
+    [[18, 9, 19, 36, 11, 2, 32, 26],
+        [31, 21, 3, 16, 27, 1, 14, 33],
+        [10, 32, 2, 13, 26, 22, 36, 4],
+        [5, 14, 29, 35, 10, 23, 25, 3],
+        [4, 11, 22, 6, 30, 34, 13, 19],
+        [16, 27, 33, 5, 21, 29, 7, 12],
+        [20, 8, 15, 24, 28, 17, 6, 30],
+        [23, 7, 12, 25, 9, 31, 35, 18],
+        [34, 1, 17, 20, 8, 15, 24, 28],
+        [3, 35, 21, 18, 4, 32, 22, 11],
+        [12, 5, 27, 23, 1, 33, 31, 10],
+        [11, 36, 8, 26, 19, 13, 30, 6],
+        [19, 28, 14, 3, 35, 12, 5, 21],
+        [24, 4, 13, 30, 34, 20, 2, 15],
+        [33, 25, 7, 29, 16, 9, 23, 14],
+        [6, 17, 32, 2, 15, 24, 26, 34],
+        [29, 16, 9, 31, 25, 7, 18, 27],
+        [1, 22, 20, 10, 36, 28, 17, 8],
+        [13, 20, 1, 28, 12, 27, 33, 5],
+        [7, 19, 18, 9, 31, 14, 21, 35],
+        [32, 2, 10, 22, 6, 30, 20, 13],
+        [35, 18, 5, 21, 23, 3, 10, 29],
+        [8, 34, 36, 11, 22, 4, 15, 24],
+        [14, 31, 25, 7, 29, 16, 9, 23],
+        [30, 15, 24, 8, 17, 26, 4, 36],
+        [27, 33, 28, 12, 3, 25, 16, 1],
+        [26, 6, 11, 32, 2, 19, 34, 17],
+        [36, 13, 26, 19, 7, 18, 29, 9],
+        [17, 30, 4, 15, 24, 6, 28, 22],
+        [25, 29, 31, 14, 5, 21, 12, 7],
+        [2, 24, 30, 17, 20, 8, 11, 32],
+        [21, 3, 16, 27, 33, 10, 1, 31],
+        [15, 26, 6, 34, 32, 11, 19, 2],
+        [9, 23, 35, 33, 14, 5, 27, 16],
+        [22, 10, 34, 4, 13, 36, 8, 20],
+        [28, 12, 23, 1, 18, 35, 3, 25]]
 
- const teams = [
+const teams = [
     Dict("club" => "Real", "nationality" => "Spain", "elo" => 1985, "uefa" => 136),                    #1
     Dict("club" => "ManCity", "nationality" => "England", "elo" => 2057, "uefa" => 148),               #2
     Dict("club" => "Bayern", "nationality" => "Germany", "elo" => 1904, "uefa" => 144),                #3
@@ -92,26 +92,26 @@ const opponents = # opponents[i] : list of placeholders connected to placeholder
 ]
 
 const team_nationalities = # team_nationalities[i] : nationality of team i
-(1, 2, 3, 4, 2, 5, 3, 3, 1, 3, 1, 5, 5, 6, 2, 7, 8, 5, 9, 6, 9, 10, 11, 4, 12, 13, 14, 15, 4, 16, 2, 5, 1, 3, 11, 4)
+    (1, 2, 3, 4, 2, 5, 3, 3, 1, 3, 1, 5, 5, 6, 2, 7, 8, 5, 9, 6, 9, 10, 11, 4, 12, 13, 14, 15, 4, 16, 2, 5, 1, 3, 11, 4)
 
 const nationalities = # nationalities[i] : list of teams of nationality i 
-( (1, 9, 11, 33), # Spain
-  (2, 5, 15, 31), # England
-  (3, 7, 8, 10, 34), #  Germany
-  (4, 24, 29, 36), # France
-  (6, 12, 13, 18, 32), # Italy
-  (14, 20), # Portugal
-  (16), # Belgium
-  (17), # Ukraine
-  (19, 21), # Netherlands
-  (22), # Croatia
-  (23, 35), # Austria
-  (25), # Serbia
-  (26), # Switzerland
-  (27), # Scotland 
-  (28), # Slovakia
-  (30) # Czech Republic
-) 
+    ((1, 9, 11, 33), # Spain
+        (2, 5, 15, 31), # England
+        (3, 7, 8, 10, 34), #  Germany
+        (4, 24, 29, 36), # France
+        (6, 12, 13, 18, 32), # Italy
+        (14, 20), # Portugal
+        (16), # Belgium
+        (17), # Ukraine
+        (19, 21), # Netherlands
+        (22), # Croatia
+        (23, 35), # Austria
+        (25), # Serbia
+        (26), # Switzerland
+        (27), # Scotland 
+        (28), # Slovakia
+        (30) # Czech Republic
+    )
 
 const nb_nat = 16 # number of different nationalities
 
@@ -180,9 +180,9 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, p, q,
     set_optimizer_attribute(model, "LogToConsole", 0) # No logging to consol
     set_optimizer_attribute(model, "Seed", rand(1:10000)) # random solution
     @variable(model, y[1:n, 1:n], Bin) # y[i,j] = 1 if team i is in placeholder j, 0 otherwise
-    
+
     # for each placeholder
-    for placeholder in 1:n 
+    for placeholder in 1:n
         # only one team
         @constraint(model, sum(y[team, placeholder] for team in 1:n) == 1)
     end
@@ -201,7 +201,7 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, p, q,
                 if other_pot != pot
                     # it cannot be associated with a corresponding placeholder
                     # (e.g., teams 1 to 9 cannot be placed in a placeholder numbered between 10 and 18)
-                    @constraint(model, sum(y[pot*q+i, other_pot*q+j] for j in 1:q) == 0) 
+                    @constraint(model, sum(y[pot*q+i, other_pot*q+j] for j in 1:q) == 0)
                 end
             end
 
@@ -209,9 +209,9 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, p, q,
     end
 
     # for each placeholder
-    for placeholder in 1:n 
+    for placeholder in 1:n
         # for each nationality
-        for nat in 1:nb_nat 
+        for nat in 1:nb_nat
             # there can't be more than two teams of this nationality associated with this placeholder
             @constraint(model, sum(y[compatriot, neighbor] for compatriot in nationalities[nat] for neighbor in opponents[placeholder]) <= 2)
         end
@@ -223,7 +223,7 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, p, q,
         for placeholder in 1:n
             # each team of the same nationality
             team_nationality = team_nationalities[team]
-            for compatriot in nationalities[team_nationality] 
+            for compatriot in nationalities[team_nationality]
                 # connected to this placeholder
                 for neighbor in opponents[placeholder]
                     # cannot be adjacent if the team is indeed in this placeholder
@@ -238,7 +238,7 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, p, q,
     end
 
     @constraint(model, y[new_team, new_placeholder] == 1) # test the new team in the new placeholder 
-           
+
     optimize!(model)
     return termination_status(model) == MOI.OPTIMAL
 end
@@ -246,8 +246,8 @@ end
 
 function admissible_teams(nationalities, opponents, nb_nat, team_nationalities, p, q, n, placeholder, already_filled) # returns the list of possible teams for placeholder given already_filled
     possible_teams = Int[]
-    pot = div(placeholder-1, 9)
-    for team in (pot*q+1):((pot+1)*q) 
+    pot = div(placeholder - 1, 9)
+    for team in (pot*q+1):((pot+1)*q)
         if !(team in already_filled) # team not already assigned to a placeholder
             if is_solvable(nationalities, opponents, nb_nat, team_nationalities, p, q, n, team, placeholder, already_filled) # does not cause a failure
                 push!(possible_teams, team)
@@ -261,7 +261,7 @@ end
 function draw(nationalities, opponents, nb_nat, team_nationalities, p, q, n) # performs the draw ; draw[i] : team at placeholder i    
     already_filled = Int[]
     for placeholder in 1:n
-        possible_teams = admissible_teams(nationalities, opponents, nb_nat, team_nationalities, p, q, n, placeholder, already_filled)  
+        possible_teams = admissible_teams(nationalities, opponents, nb_nat, team_nationalities, p, q, n, placeholder, already_filled)
         team = possible_teams[rand(1:end)]
         push!(already_filled, team)
     end
@@ -270,8 +270,8 @@ end
 
 
 function strength_opponents(nb_draw, teams, nationalities, opponents, nb_nat, team_nationalities, p, q, n)
-    elo_opponents = zeros(Float64, n, nb_draw)  
-    uefa_opponents = zeros(Float64, n, nb_draw) 
+    elo_opponents = zeros(Float64, n, nb_draw)
+    uefa_opponents = zeros(Float64, n, nb_draw)
     @threads for i in 1:nb_draw
         println(i)
         draw_i = draw(nationalities, opponents, nb_nat, team_nationalities, p, q, n)
@@ -281,18 +281,18 @@ function strength_opponents(nb_draw, teams, nationalities, opponents, nb_nat, te
             uefa_opponents[team, i] = sum(teams[draw_i[opp]]["uefa"] for opp in opponents[placeholder])
         end
     end
-    open("elo_strength_opponents.txt", "a") do file  
+    open("elo_strength_opponents.txt", "a") do file
         for i in 1:nb_draw
-            row = join(elo_opponents[:, i], " ")  
-            write(file, row * "\n")  
+            row = join(elo_opponents[:, i], " ")
+            write(file, row * "\n")
         end
-    end    
-    open("uefa_strength_opponents.txt", "a") do file  
+    end
+    open("uefa_strength_opponents.txt", "a") do file
         for i in 1:nb_draw
-            row = join(uefa_opponents[:, i], " ")  
-            write(file, row * "\n")  
+            row = join(uefa_opponents[:, i], " ")
+            write(file, row * "\n")
         end
-    end    
+    end
     return 0
 end
 
@@ -301,6 +301,6 @@ end
 
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul = 20
+const n_simul = 1
 
 strength_opponents(n_simul, teams, nationalities, opponents, nb_nat, team_nationalities, p, q, n)
