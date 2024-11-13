@@ -1,52 +1,86 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
+    <title>Football Teams Graph</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6" crossorigin="anonymous" />
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js" integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf" crossorigin="anonymous"></script>
     <style type="text/css">
         #mynetwork {
             width: 100%;
-            height: 600px;
+            height: 800px; /* Increased height for more space */
             background-color: #ffffff;
             border: 1px solid lightgray;
-            position: relative;
-            float: left;
+        }
+        .card-header {
+            font-size: 24px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 8px;
         }
     </style>
 </head>
 <body>
-    <div class="card" style="width: 100%">
-        <div id="mynetwork" class="card-body"></div>
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">Football Teams Graph</div>
+            <div class="card-body">
+                <div id="mynetwork"></div>
+            </div>
+        </div>
+        <div class="legend card mt-3 p-2">
+            <p > Pot Color </p>
+            <div class="legend-item"><div class="legend-color" style="background-color: red;"></div>Pot 1</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: blue;"></div>Pot 2</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: green;"></div>Pot 3</div>
+            <div class="legend-item"><div class="legend-color" style="background-color: purple;"></div>Pot 4</div>
+        </div>
+        <div class="card">
+            
+
+        </div>
     </div>
-    <script type="text/javascript">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
         // Correspondance entre les équipes et leurs sommets
-            // Correspondance entre les équipes et leurs sommets
-            const teamMap = {
-                8: "Real", 5: "Man City", 6: "Bayern", 7: "PSG", 1: "Liverpool",
-                9: "Inter", 2: "Dortmund", 4: "Leipzig", 3: "Barcelona", 16: "Leverkusen",
-                11: "Atlético", 10: "Atalanta", 13: "Juventus", 14: "Benfica", 12: "Arsenal",
-                15: "Brugge", 18: "Shakhtar", 17: "Milan", 21: "Feyenoord", 19: "Sporting",
-                22: "Eindhoven", 24: "Dinamo", 23: "Salzburg", 20: "Lille", 25: "Crvena",
-                26: "YB", 27: "Celtic", 32: "Bratislava", 28: "Monaco", 35: "Sparta",
-                34: "Aston Villa", 30: "Bologna", 33: "Girona", 36: "Stuttgart", 29: "Sturm Graz",
-                31: "Brest"
-            };
+        const teamMap = {
+    8: "Real", 5: "Man City", 6: "Bayern", 7: "PSG", 1: "Liverpool",
+    9: "Inter", 2: "Dortmund", 4: "Leipzig", 3: "Barcelona", 16: "Leverkusen",
+    11: "Atlético", 10: "Atalanta", 13: "Juventus", 14: "Benfica", 12: "Arsenal",
+    15: "Brugge", 18: "Shakhtar", 17: "Milan", 21: "Feyenoord", 19: "Sporting",
+    22: "Eindhoven", 24: "Dinamo", 23: "Salzburg", 20: "Lille", 25: "Crvena",
+    26: "YB", 27: "Celtic", 32: "Bratislava", 28: "Monaco", 35: "Sparta",
+    34: "Aston Villa", 30: "Bologna", 33: "Girona", 36: "Stuttgart", 29: "Sturm Graz",
+    31: "Brest"
+};
 
 
-            // Couleurs des groupes
-            const groupColors = {
-                "Real": "red", "Man City": "red", "Bayern": "red", "PSG": "red", "Liverpool": "red",
-                "Inter": "red", "Dortmund": "red", "Leipzig": "red", "Barcelona": "red", "Leverkusen": "red",
-                "Atlético": "blue", "Atalanta": "blue", "Juventus": "blue", "Benfica": "blue", "Arsenal": "blue",
-                "Brugge": "blue", "Shakhtar": "blue", "Milan": "blue", "Feyenoord": "green", "Sporting": "green",
-                "Eindhoven": "green", "Dinamo": "green", "Salzburg": "green", "Lille": "green", "Crvena": "green",
-                "YB": "green", "Celtic": "green", "Bratislava": "purple", "Monaco": "purple", "Sparta": "purple",
-                "Aston Villa": "purple", "Bologna": "purple", "Girona": "purple", "Stuttgart": "purple", "Sturm Graz": "purple",
-                "Brest": "purple"
-            };
+        // Couleurs des groupes
+        const groupColors = {
+    "Real": "red", "Man City": "red", "Bayern": "red", "PSG": "red", "Liverpool": "red",
+    "Inter": "red", "Dortmund": "red", "Leipzig": "red", "Barcelona": "red", "Leverkusen": "red",
+    "Atlético": "blue", "Atalanta": "blue", "Juventus": "blue", "Benfica": "blue", "Arsenal": "blue",
+    "Brugge": "blue", "Shakhtar": "blue", "Milan": "blue", "Feyenoord": "green", "Sporting": "green",
+    "Eindhoven": "green", "Dinamo": "green", "Salzburg": "green", "Lille": "green", "Crvena": "green",
+    "YB": "green", "Celtic": "green", "Bratislava": "purple", "Monaco": "purple", "Sparta": "purple",
+    "Aston Villa": "purple", "Bologna": "purple", "Girona": "purple", "Stuttgart": "purple", "Sturm Graz": "purple",
+    "Brest": "purple"
+};
+
 
         // Fonction pour générer les nœuds avec les labels des équipes et les couleurs des groupes
         function generateNodes() {
@@ -56,7 +90,7 @@
                     id: parseInt(id),
                     label: teamMap[id],
                     shape: "dot",
-                    size: 10,
+                    size: 20,
                     color: groupColors[teamMap[id]]
                 });
             }
@@ -109,14 +143,20 @@
             [36, 9, 9], [36, 18, 7], [36, 27, 2], [36, 34, 4]
         ];
 
-
         // Fonction pour générer les arêtes avec les couleurs
         function generateEdges(edgesColored) {
             return new vis.DataSet(edgesColored.map(edge => ({
                 from: edge[0],
                 to: edge[1],
                 color: { color: colorMap[edge[2]] },
-                arrows: 'to'
+                width: 2,
+                chosen: {
+                    edge: function(values, id, selected, hovering) {
+                        if (selected) {
+                            values.width = 4;
+                        }
+                    }
+                }
             })));
         }
 
@@ -129,8 +169,42 @@
             const options = {
                 nodes: {
                     font: {
-                        size: 16
+                        size: 30
+                    },
+                    scaling: {
+                        min: 16,
+                        max: 32
                     }
+                },
+                edges: {
+                    smooth: true,
+                    scaling: {
+                        min: 2,
+                        max: 4
+                    },
+                    color: {
+                        inherit: false
+                    },
+                    chosen: {
+                        edge: function(values, id, selected, hovering) {
+                            if (selected) {
+                                values.width = 4;
+                            }
+                        }
+                    }
+                },
+                physics: {
+                    enabled: true,
+                    barnesHut: {
+                        gravitationalConstant: -5000,
+                        centralGravity: 0.3,
+                        springLength: 120,
+                        springConstant: 0.01,
+                        damping: 0.09
+                    }
+                },
+                layout: {
+                    improvedLayout: true
                 }
             };
 
