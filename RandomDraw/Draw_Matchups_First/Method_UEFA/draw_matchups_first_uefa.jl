@@ -189,8 +189,26 @@ function get_team_nationality(teams::TeamsContainer, index::Int)::String
     end
 end
 
-function get_team(team_name::String)::Team
+function get_team_from_name(team_name::String)::Team
     return teams.index[team_name]
+end
+
+function get_team_from_index(team_index::Int)::Team
+    pot_index = div(team_index - 1, 9) + 1  # Détermine le pot (1 à 4)
+    team_index = (team_index - 1) % 9 + 1   # Détermine l'index dans le pot (1 à 9)
+
+    # Récupérer le bon pot en fonction de pot_index
+    if pot_index == 1
+        return teams.pot1[team_index]
+    elseif pot_index == 2
+        return teams.pot2[team_index]
+    elseif pot_index == 3
+        return teams.pot3[team_index]
+    elseif pot_index == 4
+        return teams.pot4[team_index]
+    else
+        error("Index out of bounds")
+    end
 end
 
 function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{String})::Dict{String,Constraint}
@@ -314,7 +332,7 @@ end
 function filter_team_already_played_home(selected_team::Team, opponent_group::NTuple{9,Team}, constraints::Dict{String,Constraint})::Union{Team,Nothing}
     li_home_selected_team = constraints[selected_team.club].played_home
     for home_club_name in li_home_selected_team
-        home_team = get_team(home_club_name)
+        home_team = get_team_from_name(home_club_name)
         if home_team in opponent_group
             return home_team
         end
@@ -326,7 +344,7 @@ end
 function filter_team_already_played_away(selected_team::Team, opponent_group::NTuple{9,Team}, constraints::Dict{String,Constraint})::Union{Team,Nothing}
     li_away_selected_team = constraints[selected_team.club].played_ext
     for away_club_name in li_away_selected_team
-        away_team = get_team(away_club_name)
+        away_team = get_team_from_name(away_club_name)
         if away_team in opponent_group
             return away_team
         end
@@ -404,7 +422,7 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
     return true_matches
 end
 
-function tirage_au_sort(nb_draw::Int; sequential=false)
+function tirage_au_sort_uefa(nb_draw::Int; sequential=false)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
@@ -484,6 +502,78 @@ function tirage_au_sort(nb_draw::Int; sequential=false)
 
     return 0
 end
+
+
+
+function tirage_au_sort_randomized(nb_draw::Int; sequential=false)
+    elo_opponents = zeros(Float64, 36, nb_draw)
+    uefa_opponents = zeros(Float64, 36, nb_draw)
+    matches = zeros(Int, 36, 8, nb_draw)
+    @threads for s in 1:nb_draw
+        constraints = initialize_constraints(teams, all_nationalities)
+        matches_list = []
+        shuffled_order = shuffle!(collect(1:36)) # Mélange de l'ordre des équipes pour qui nous allons déterminer les adversaires
+        for index_team in shuffled_order
+            selected_team = get_team_from_index(index_team)
+            opponent_pots_shuffled_indexes = shuffle!(collect(1:4))  # Mélange des indices
+
+            for idx_opponent_pot in opponent_pots_shuffled_indexes
+                opponent_pot = if idx_opponent_pot == 1
+                    teams.pot1
+                elseif idx_opponent_pot == 2
+                    teams.pot2
+                elseif idx_opponent_pot == 3
+                    teams.pot3
+                elseif idx_opponent_pot == 4
+                    teams.pot4
+                end
+
+                home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
+
+                matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_of_team(home.club)
+                matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot, s] = get_index_of_team(away.club)
+
+                elo_opponents[get_index_of_team(selected_team.club), s] += away.elo + home.elo
+                uefa_opponents[get_index_of_team(selected_team.club), s] += away.uefa + home.uefa
+
+                update_constraints(selected_team, home, constraints)
+                update_constraints(away, selected_team, constraints)
+            end
+        end
+    end
+
+    open("draws_draw_matchups_first_elo_bis.txt", "a") do file
+        for i in 1:nb_draw
+            row = join(elo_opponents[:, i], " ")
+            write(file, row * "\n")
+        end
+    end
+
+    open("draws_draw_matchups_first_uefa_bis.txt", "a") do file
+        for i in 1:nb_draw
+            row = join(uefa_opponents[:, i], " ")
+            write(file, row * "\n")
+        end
+    end
+
+    open("matches_draw_matchups_first_bis.txt", "a") do file
+        for i in 1:nb_draw
+            for team in 1:36
+                home_matches = [(team, matches[team, k, i]) for k in 1:2:8]
+                home_row = join(home_matches, " ")
+                write(file, home_row * " ")
+                away_matches = [(matches[team, k, i], team) for k in 2:2:8]
+                away_row = join(away_matches, " ")
+                write(file, away_row * " ")
+            end
+            write(file, "\n")
+        end
+    end
+
+    return 0
+end
+
+
 
 
 ###################################### COMMANDS ###################################### 
