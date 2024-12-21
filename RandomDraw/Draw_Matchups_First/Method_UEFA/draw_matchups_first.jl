@@ -360,7 +360,7 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
     away_team = filter_team_already_played_away(selected_team, opponent_group, constraints)
 
     #On pourrait directement renvoyer (home_team, away_team) on fait le test par précaution
-    if home_team != nothing && away_team != nothing && home_team != away_team
+    if home_team !== nothing && away_team !== nothing && home_team != away_team
         match = (home_team, away_team)
         if home_team.nationality != selected_team.nationality && away_team.nationality != selected_team.nationality
             if solve_problem(selected_team, constraints, match)
@@ -369,7 +369,7 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
         end
     end
 
-    if home_team == nothing && away_team == nothing
+    if home_team === nothing && away_team === nothing
         for home in opponent_group
             for away in opponent_group
                 if home != away && home.nationality != selected_team.nationality && away.nationality != selected_team.nationality &&
@@ -377,8 +377,8 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
                    constraints[selected_team.club].nationalities[away.nationality] <= 2 &&
                    constraints[home.club].nationalities[selected_team.nationality] <= 2 &&
                    constraints[away.club].nationalities[selected_team.nationality] <= 2 &&
-                   filter_team_already_played_away(home, opponent_group, constraints) == nothing &&#On vérfie que home ne s'est pas déjà déplacé
-                   filter_team_already_played_home(away, opponent_group, constraints) == nothing
+                   filter_team_already_played_away(home, opponent_group, constraints) === nothing &&#On vérfie que home ne s'est pas déjà déplacé
+                   filter_team_already_played_home(away, opponent_group, constraints) === nothing
                     match = (home, away)
                     if solve_problem(selected_team, constraints, match)
                         push!(true_matches, match)
@@ -388,14 +388,14 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
         end
     end
 
-    if home_team == nothing && away_team != nothing
+    if home_team === nothing && away_team !== nothing
         for home in opponent_group
             if home != away_team &&
                home.nationality != selected_team.nationality &&
                away_team.nationality != selected_team.nationality &&
                constraints[selected_team.club].nationalities[home.nationality] <= 2 &&
                constraints[home.club].nationalities[selected_team.nationality] <= 2 &&
-               filter_team_already_played_away(home, opponent_group, constraints) == nothing
+               filter_team_already_played_away(home, opponent_group, constraints) === nothing
                 match = (home, away_team)
                 if solve_problem(selected_team, constraints, match)
                     push!(true_matches, match)
@@ -404,14 +404,14 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
         end
     end
 
-    if home_team != nothing && away_team == nothing
+    if home_team !== nothing && away_team === nothing
         for away in opponent_group
             if home_team != away &&
                home_team.nationality != selected_team.nationality &&
                away.nationality != selected_team.nationality &&
                constraints[selected_team.club].nationalities[away.nationality] <= 2 &&
                constraints[away.club].nationalities[selected_team.nationality] <= 2 &&
-               filter_team_already_played_home(away, opponent_group, constraints) == nothing
+               filter_team_already_played_home(away, opponent_group, constraints) === nothing
                 match = (home_team, away)
                 if solve_problem(selected_team, constraints, match)
                     push!(true_matches, match)
@@ -422,13 +422,102 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
     return true_matches
 end
 
+function tirage_au_sort_uefa_sequential()
+    constraints = initialize_constraints(teams, all_nationalities)
+    println("Début du tirage au sort")
+    start_time = time()
+    matches_list = []
+
+    open("tirage_au_sort.txt", "w") do file
+        for pot_index in 1:4
+            println("Mélange des indices pour le pot $pot_index")
+            indices = shuffle!(collect(1:9))  # Mélange des indices
+            
+            # Accès au pot correspondant dans TeamsContainer
+            pot = if pot_index == 1
+                teams.pot1
+            elseif pot_index == 2
+                teams.pot2
+            elseif pot_index == 3
+                teams.pot3
+            elseif pot_index == 4
+                teams.pot4
+            else
+                error("Index de pot invalide")
+            end
+
+            for i in indices
+                selected_team = pot[i]
+                li_opponents = [(selected_team.club, "")]
+
+                println(file, "Tirage pour l'équipe : ", selected_team.club)
+                
+                for idx_opponent_pot in 1:4
+                    opponent_pot = if idx_opponent_pot == 1
+                        teams.pot1
+                    elseif idx_opponent_pot == 2
+                        teams.pot2
+                    elseif idx_opponent_pot == 3
+                        teams.pot3
+                    elseif idx_opponent_pot == 4
+                        teams.pot4
+                    else
+                        error("Index de pot invalide")
+                    end
+
+                    matches_possible = true_admissible_matches(selected_team, opponent_pot, constraints)
+
+                    equipes_possibles = [(match[1].club, match[2].club) for match in matches_possible]
+                    selected_match = matches_possible[rand(1:end)]
+                    home, away = selected_match
+
+                    println(file, "Adversaires possibles du pot $idx_opponent_pot : ", equipes_possibles)
+
+                    println("")
+                    println("Equipe sélectionnée: $(selected_team.club)")
+                    println("Pot sélectionné: $(idx_opponent_pot)")
+                    println("")
+                    println("Liste des couples possibles")
+                    println(equipes_possibles)
+                    println("")
+                    println("Match sélectionné dans le pot $(idx_opponent_pot) : $(home.club) vs $(away.club)")
+                    println("Appuyez sur la barre d'espace suivi d'Entrée pour continuer...")
+
+                    while true
+                        input = readline()
+                        if input == " "
+                            break
+                        else
+                            println("Vous n'avez pas appuyé sur la barre d'espace suivi d'Entrée, réessayez.")
+                        end
+                    end
+
+                    update_constraints(selected_team, home, constraints)
+                    update_constraints(away, selected_team, constraints)
+                    push!(li_opponents, (home.club, away.club))
+                end
+
+                println(file, li_opponents)
+                println(file, "\n---\n")  # Ajoute une ligne de séparation après chaque équipe
+                push!(matches_list, li_opponents)
+            end
+            println(file, "\n\n")  # Ajoute un espace supplémentaire après chaque pot pour une meilleure visibilité
+        end
+    end
+
+    println("Résultats du tirage au sort enregistrés dans le fichier 'tirage_au_sort.txt'")
+    total_time = time() - start_time
+    println("Temps total d'exécution de tirage_au_sort : $(round(total_time, digits=2)) secondes")
+end
+
+
+
 function tirage_au_sort_uefa(nb_draw::Int; sequential=false)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
     @threads for s in 1:nb_draw
         constraints = initialize_constraints(teams, all_nationalities)
-        matches_list = []
         for pot_index in 1:4
             indices = shuffle!(collect(1:9))  # Mélange des indices
 
@@ -502,6 +591,7 @@ function tirage_au_sort_uefa(nb_draw::Int; sequential=false)
 
     return 0
 end
+
 
 
 
