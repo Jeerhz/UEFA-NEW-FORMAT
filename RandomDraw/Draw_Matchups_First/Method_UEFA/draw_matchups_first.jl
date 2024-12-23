@@ -41,102 +41,103 @@ function create_teams_container(
 end
 
 # Europa League
-# pot1 = (
-#     Team("Roma", "Italy", 1812, 101),
-#     Team("Man Utd", "England", 1779, 92),
-#     Team("Porto", "Portugal", 1778, 77),
-#     Team("Ajax", "Netherlands", 1619, 67),
-#     Team("Rangers", "Scotland", 1618, 63),
-#     Team("Frankfurt", "Germany", 1697, 60),
-#     Team("Lazio", "Italy", 1785, 54),
-#     Team("Tottenham", "England", 1791, 54),
-#     Team("Slavia Praha", "Czech Republic", 1702, 53)
-# )
-
-# pot2 = (
-#     Team("Real Sociedad", "Spain", 1767, 51),
-#     Team("AZ Alkmaar", "Netherlands", 1591, 50),
-#     Team("Braga", "Portugal", 1636, 49),
-#     Team("Lyon", "France", 1713, 44),
-#     Team("PAOK", "Greece", 1639, 37),
-#     Team("Fenerbahçe", "Turkey", 1714, 36),
-#     Team("M. Tel-Aviv", "Israel", 1614, 35.5),
-#     Team("Ferencvaros", "Hungary", 1479, 35)
-# )
-
-# pot3 = (
-#     Team("Qarabag", "Azerbaijan", 1597, 33),
-#     Team("Galatasaray", "Turkey", 1721, 31.5),
-#     Team("Viktoria Plzen", "Czech Republic", 1572, 28),
-#     Team("Bodo/Glimt", "Norway", 1598, 28),
-#     Team("Union SG", "Belgium", 1701, 27),
-#     Team("Dynamo Kyiv", "Ukraine", 1517, 26.5),
-#     Team("Ludogorets", "Bulgaria", 1512, 26),
-#     Team("Midtjylland", "Denmark", 1624, 25.5),
-#     Team("Malmo", "Sweden", 1493, 18.5)
-# )
-
-# pot4 = (
-#     Team("Athletic Club", "Spain", 1764, 17.897),
-#     Team("Hoffenheim", "Germany", 1683, 17.324),
-#     Team("Nice", "France", 1703, 17),
-#     Team("Anderlecht", "Belgium", 1640, 14.5),
-#     Team("Twente", "Netherlands", 1627, 12.650),
-#     Team("Besiktas", "Turkey", 1484, 12),
-#     Team("FCSB", "Romania", 1434, 10.5),
-#     Team("RFS", "Latvia", 1225, 8),
-#     Team("Elfsborg", "Sweden", 1403, 4.3)
-# )
-
-
-# Champions League
 pot1 = (
-    Team("Real", "Spain", 1985, 136),
-    Team("ManCity", "England", 2057, 148),
-    Team("Bayern", "Germany", 1904, 144),
-    Team("PSG", "France", 1893, 116),
-    Team("Liverpool", "England", 1908, 114),
-    Team("Inter", "Italy", 1960, 101),
-    Team("Dortmund", "Germany", 1874, 97),
-    Team("Leipzig", "Germany", 1849, 97),
-    Team("Barcelona", "Spain", 1894, 91)
+    Team("Roma", "Italy", 1812, 101),
+    Team("Man Utd", "England", 1779, 92),
+    Team("Porto", "Portugal", 1778, 77),
+    Team("Ajax", "Netherlands", 1619, 67),
+    Team("Rangers", "Scotland", 1618, 63),
+    Team("Frankfurt", "Germany", 1697, 60),
+    Team("Lazio", "Italy", 1785, 54),
+    Team("Tottenham", "England", 1791, 54),
+    Team("Slavia Praha", "Czech Republic", 1702, 53)
 )
 
 pot2 = (
-    Team("Leverkusen", "Germany", 1929, 90),
-    Team("Atlético", "Spain", 1830, 89),
-    Team("Atalanta", "Italy", 1879, 81),
-    Team("Juventus", "Italy", 1839, 80),
-    Team("Benfica", "Portugal", 1824, 79),
-    Team("Arsenal", "England", 1957, 72),
-    Team("Brugge", "Belgium", 1703, 64),
-    Team("Shakhtar", "Ukraine", 1573, 63),
-    Team("Milan", "Italy", 1821, 59)
+    Team("Real Sociedad", "Spain", 1767, 51),
+    Team("Olympiacos", "Greece", 1639, 50),
+    Team("AZ Alkmaar", "Netherlands", 1591, 50),
+    Team("Braga", "Portugal", 1636, 49),
+    Team("Lyon", "France", 1713, 44),
+    Team("PAOK", "Greece", 1639, 37),
+    Team("Fenerbahçe", "Turkey", 1714, 36),
+    Team("M. Tel-Aviv", "Israel", 1614, 35.5),
+    Team("Ferencvaros", "Hungary", 1479, 35)
 )
 
 pot3 = (
-    Team("Feyenoord", "Netherlands", 1747, 57),
-    Team("Sporting", "Portugal", 1824, 54.5),
-    Team("Eindhoven", "Netherlands", 1794, 54),
-    Team("Dinamo", "Croatia", 1584, 50),
-    Team("Salzburg", "Austria", 1693, 50),
-    Team("Lille", "France", 1785, 47),
-    Team("Crvena", "Serbia", 1734, 40),
-    Team("YB", "Switzerland", 1566, 34.5),
-    Team("Celtic", "Scotland", 1646, 32)
+    Team("Qarabag", "Azerbaijan", 1597, 33),
+    Team("Galatasaray", "Turkey", 1721, 31.5),
+    Team("Viktoria Plzen", "Czech Republic", 1572, 28),
+    Team("Bodo/Glimt", "Norway", 1598, 28),
+    Team("Union SG", "Belgium", 1701, 27),
+    Team("Dynamo Kyiv", "Ukraine", 1517, 26.5),
+    Team("Ludogorets", "Bulgaria", 1512, 26),
+    Team("Midtjylland", "Denmark", 1624, 25.5),
+    Team("Malmo", "Sweden", 1493, 18.5)
 )
 
 pot4 = (
-    Team("Bratislava", "Slovakia", 1703, 30.5),
-    Team("Monaco", "France", 1780, 24),
-    Team("Sparta", "Czech Republic", 1716, 22.5),
-    Team("Aston Villa", "England", 1772, 20.86),
-    Team("Bologna", "Italy", 1777, 18.056),
-    Team("Girona", "Spain", 1791, 17.897),
-    Team("Stuttgart", "Germany", 1795, 17.324),
-    Team("Sturm Graz", "Austria", 1610, 14.500),
-    Team("Brest", "France", 1685, 13.366)
+    Team("Athletic Club", "Spain", 1764, 17.897),
+    Team("Hoffenheim", "Germany", 1683, 17.324),
+    Team("Nice", "France", 1703, 17),
+    Team("Anderlecht", "Belgium", 1640, 14.5),
+    Team("Twente", "Netherlands", 1627, 12.650),
+    Team("Besiktas", "Turkey", 1484, 12),
+    Team("FCSB", "Romania", 1434, 10.5),
+    Team("RFS", "Latvia", 1225, 8),
+    Team("Elfsborg", "Sweden", 1403, 4.3)
 )
+
+
+# Champions League
+# pot1 = (
+#     Team("Real", "Spain", 1985, 136),
+#     Team("ManCity", "England", 2057, 148),
+#     Team("Bayern", "Germany", 1904, 144),
+#     Team("PSG", "France", 1893, 116),
+#     Team("Liverpool", "England", 1908, 114),
+#     Team("Inter", "Italy", 1960, 101),
+#     Team("Dortmund", "Germany", 1874, 97),
+#     Team("Leipzig", "Germany", 1849, 97),
+#     Team("Barcelona", "Spain", 1894, 91)
+# )
+
+# pot2 = (
+#     Team("Leverkusen", "Germany", 1929, 90),
+#     Team("Atlético", "Spain", 1830, 89),
+#     Team("Atalanta", "Italy", 1879, 81),
+#     Team("Juventus", "Italy", 1839, 80),
+#     Team("Benfica", "Portugal", 1824, 79),
+#     Team("Arsenal", "England", 1957, 72),
+#     Team("Brugge", "Belgium", 1703, 64),
+#     Team("Shakhtar", "Ukraine", 1573, 63),
+#     Team("Milan", "Italy", 1821, 59)
+# )
+
+# pot3 = (
+#     Team("Feyenoord", "Netherlands", 1747, 57),
+#     Team("Sporting", "Portugal", 1824, 54.5),
+#     Team("Eindhoven", "Netherlands", 1794, 54),
+#     Team("Dinamo", "Croatia", 1584, 50),
+#     Team("Salzburg", "Austria", 1693, 50),
+#     Team("Lille", "France", 1785, 47),
+#     Team("Crvena", "Serbia", 1734, 40),
+#     Team("YB", "Switzerland", 1566, 34.5),
+#     Team("Celtic", "Scotland", 1646, 32)
+# )
+
+# pot4 = (
+#     Team("Bratislava", "Slovakia", 1703, 30.5),
+#     Team("Monaco", "France", 1780, 24),
+#     Team("Sparta", "Czech Republic", 1716, 22.5),
+#     Team("Aston Villa", "England", 1772, 20.86),
+#     Team("Bologna", "Italy", 1777, 18.056),
+#     Team("Girona", "Spain", 1791, 17.897),
+#     Team("Stuttgart", "Germany", 1795, 17.324),
+#     Team("Sturm Graz", "Austria", 1610, 14.500),
+#     Team("Brest", "France", 1685, 13.366)
+# )
 
 # Use the helper function to create the TeamsContainer instance
 const teams = create_teams_container(pot1, pot2, pot3, pot4)
@@ -669,10 +670,10 @@ end
 
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul = 3
+const n_simul = 2
 
 @time begin
-    tirage_au_sort_randomized(n_simul)
+    tirage_au_sort_uefa(n_simul)
 end
 
 
