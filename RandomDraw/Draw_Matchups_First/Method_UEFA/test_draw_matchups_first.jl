@@ -1,4 +1,3 @@
-using Jute
 using Test
 include("draw_matchups_first.jl")
 
