@@ -168,7 +168,7 @@ end
 
 const all_nationalities = get_li_nationalities(teams)
 
-function get_index_of_team(team_name::String)::Int
+function get_index_from_team_name(team_name::String)::Int
     return club_index[team_name]
 end
 
@@ -232,11 +232,17 @@ function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{St
     return constraints
 end
 
+# Update the constraints based on the new match
+# home is the team playing at home and away is the team playing away
 function update_constraints(home::Team, away::Team, constraints::Dict{String,Constraint})
+    if (away.club in constraints[home.club].played_home) || (home.club in constraints[away.club].played_ext)
+        @warn "Match already played. Home: $(home.club), Away: $(away.club)"
+    else
+        constraints[home.club].nationalities[away.nationality] += 1
+        constraints[away.club].nationalities[home.nationality] += 1
+    end
     push!(constraints[home.club].played_home, away.club)
     push!(constraints[away.club].played_ext, home.club)
-    constraints[home.club].nationalities[away.nationality] += 1
-    constraints[away.club].nationalities[home.nationality] += 1
 end
 
 function silence_output(f::Function)
@@ -254,7 +260,7 @@ end
 
 function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}, new_match::NTuple{2,Team})::Bool
     model = Model(Gurobi.Optimizer; add_bridges=false)
-    set_optimizer_attribute(model, "Seed", rand(1:10000000)) # random solution
+    set_optimizer_attribute(model, "Seed", rand(1:1000000000)) # random solution
     set_optimizer_attribute(model, "OutputFlag", 0)
     set_optimizer_attribute(model, "LogToConsole", 0) # No logging to consol
     T = 8
@@ -278,20 +284,20 @@ function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}
 
 
     # Constraint for the initially selected admissible match
-    home_idx, away_idx = get_index_of_team(new_match[1].club), get_index_of_team(new_match[2].club)
-    selected_idx = get_index_of_team(selected_team.club)
+    home_idx, away_idx = get_index_from_team_name(new_match[1].club), get_index_from_team_name(new_match[2].club)
+    selected_idx = get_index_from_team_name(selected_team.club)
     @constraint(model, sum(match_vars[selected_idx, home_idx, t] for t in 1:T) == 1)
     @constraint(model, sum(match_vars[away_idx, selected_idx, t] for t in 1:T) == 1)
 
     # Applying constraints based on previously played matches and nationality constraints
     for (club, cons) in constraints
-        club_idx = get_index_of_team(club)
+        club_idx = get_index_from_team_name(club)
         for home_club in cons.played_home
-            home_idx = get_index_of_team(home_club)
+            home_idx = get_index_from_team_name(home_club)
             @constraint(model, sum(match_vars[club_idx, home_idx, t] for t in 1:T) == 1)
         end
         for away_club in cons.played_ext
-            away_idx = get_index_of_team(away_club)
+            away_idx = get_index_from_team_name(away_club)
             @constraint(model, sum(match_vars[away_idx, club_idx, t] for t in 1:T) == 1)
         end
     end
@@ -363,6 +369,7 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
     #On pourrait directement renvoyer (home_team, away_team) on fait le test par précaution
     if home_team !== nothing && away_team !== nothing && home_team != away_team
         match = (home_team, away_team)
+        #On vérifie que les adversaires ne sont pas de la même nationalité que selected_team
         if home_team.nationality != selected_team.nationality && away_team.nationality != selected_team.nationality
             if solve_problem(selected_team, constraints, match)
                 push!(true_matches, match)
@@ -548,11 +555,11 @@ function tirage_au_sort_uefa(nb_draw::Int)
 
                     home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
 
-                    matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_of_team(home.club)
-                    matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot, s] = get_index_of_team(away.club)
+                    matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_from_team_name(home.club)
+                    matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot, s] = get_index_from_team_name(away.club)
 
-                    elo_opponents[get_index_of_team(selected_team.club), s] += away.elo + home.elo
-                    uefa_opponents[get_index_of_team(selected_team.club), s] += away.uefa + home.uefa
+                    elo_opponents[get_index_from_team_name(selected_team.club), s] += away.elo + home.elo
+                    uefa_opponents[get_index_from_team_name(selected_team.club), s] += away.uefa + home.uefa
 
                     update_constraints(selected_team, home, constraints)
                     update_constraints(away, selected_team, constraints)
@@ -630,17 +637,16 @@ function tirage_au_sort_randomized(nb_draw::Int)
                     @info "Selected home team: $(home.club)"
                     @info "Selected away team: $(away.club)"
                 catch e
-                    @warn "Error while trying to find a match for $(selected_team.club) against pot $idx_opponent_pot"
-                    @warn "The constraints for that team are $(constraints[selected_team.club])"
-                    @warn "The error was: $e"
-                    continue
+                    @error "Error while trying to find a match for $(selected_team.club) against pot $idx_opponent_pot"
+                    @error "The constraints for that team are $(constraints[selected_team.club])"
+                    throw(e)
                 end
 
-                matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_of_team(home.club)
-                matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot, s] = get_index_of_team(away.club)
+                matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_from_team_name(home.club)
+                matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot, s] = get_index_from_team_name(away.club)
 
-                elo_opponents[get_index_of_team(selected_team.club), s] += away.elo + home.elo
-                uefa_opponents[get_index_of_team(selected_team.club), s] += away.uefa + home.uefa
+                elo_opponents[get_index_from_team_name(selected_team.club), s] += away.elo + home.elo
+                uefa_opponents[get_index_from_team_name(selected_team.club), s] += away.uefa + home.uefa
 
                 update_constraints(selected_team, home, constraints)
                 update_constraints(away, selected_team, constraints)
