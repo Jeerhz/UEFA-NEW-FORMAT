@@ -1,6 +1,6 @@
 ############################################ IMPORTS ############################################
 
-using Gurobi, JuMP, CSV, DataFrames, Random, Base.Threads
+using Gurobi, JuMP, CSV, DataFrames, Random, Base.Threads, Logging
 
 ####################################### GLOBAL VARIABLES #######################################
 
@@ -225,7 +225,7 @@ function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{St
             constraints[team.club] = Constraint(
                 Set{String}(),         # played_home initialized as an empty Set
                 Set{String}(),         # played_ext initialized as an empty Set
-                team_nationalities     # nationalities dictionary
+                team_nationalities     # nationalities dictionnary
             )
         end
     end
@@ -433,7 +433,6 @@ function tirage_au_sort_uefa_sequential()
         for pot_index in 1:4
             println("Mélange des indices pour le pot $pot_index")
             indices = shuffle!(collect(1:9))  # Mélange des indices
-            
             # Accès au pot correspondant dans TeamsContainer
             pot = if pot_index == 1
                 teams.pot1
@@ -600,13 +599,19 @@ function tirage_au_sort_randomized(nb_draw::Int)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
-    @threads for s in 1:nb_draw
+    for s in 1:nb_draw
         constraints = initialize_constraints(teams, all_nationalities)
-        shuffled_order = shuffle!(collect(1:36)) # Mélange de l'ordre des équipes pour qui nous allons déterminer les adversaires
+        shuffled_order = shuffle(collect(1:36)) # Mélange de l'ordre des équipes pour qui nous allons déterminer les adversaires
+        open("order_selection.txt", "a") do file
+            write(file, shuffled_order)
+        end
+        @info "Shuffled order: $shuffled_order"
         for index_team in shuffled_order
+            @info "Selected team index: $index_team"
             selected_team = get_team_from_index(index_team)
-            opponent_pots_shuffled_indexes = shuffle!(collect(1:4))  # Mélange des indices
-
+            @info "Selected team: $(selected_team.club)"
+            opponent_pots_shuffled_indexes = shuffle(collect(1:4))  # Mélange des indices
+            @info "Shuffled opponent pots indexes: $opponent_pots_shuffled_indexes"
             for idx_opponent_pot in opponent_pots_shuffled_indexes
                 opponent_pot = if idx_opponent_pot == 1
                     teams.pot1
@@ -618,7 +623,18 @@ function tirage_au_sort_randomized(nb_draw::Int)
                     teams.pot4
                 end
 
-                home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
+                home = nothing
+                away = nothing
+                try
+                    home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
+                    @info "Selected home team: $(home.club)"
+                    @info "Selected away team: $(away.club)"
+                catch e
+                    @warn "Error while trying to find a match for $(selected_team.club) against pot $idx_opponent_pot"
+                    @warn "The constraints for that team are $(constraints[selected_team.club])"
+                    @warn "The error was: $e"
+                    continue
+                end
 
                 matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_of_team(home.club)
                 matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot, s] = get_index_of_team(away.club)
@@ -670,10 +686,10 @@ end
 
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul = 2
+const n_simul = 1
 
 @time begin
-    tirage_au_sort_uefa(n_simul)
+    tirage_au_sort_randomized(n_simul)
 end
 
 
