@@ -26,9 +26,3 @@ jobs:
       - name: Run tests
         run: |
           julia --project=. -e 'using Jute; Jute.run("test_draw_matchups_first.jl")'
-
-
-[deps]
-Jute = "b1bb7b99-f482-5c09-97b6-1e6c330d21db"
-Gurobi = "2e9cd046-0924-5d82-9a4d-582b728aaf79"
-JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
