@@ -606,7 +606,7 @@ function tirage_au_sort_randomized(nb_draw::Int)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
-    for s in 1:nb_draw
+    @threads for s in 1:nb_draw
         constraints = initialize_constraints(teams, all_nationalities)
         shuffled_order = shuffle(collect(1:36)) # Mélange de l'ordre des équipes pour qui nous allons déterminer les adversaires
         open("order_selection.txt", "a") do file
@@ -684,8 +684,6 @@ function tirage_au_sort_randomized(nb_draw::Int)
 
     return 0
 end
-
-
 
 
 ###################################### COMMANDS ###################################### 
