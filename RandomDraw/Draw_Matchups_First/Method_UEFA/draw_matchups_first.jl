@@ -1,6 +1,6 @@
 ############################################ IMPORTS ############################################
 
-using Gurobi, JuMP, CSV, DataFrames, Random, Base.Threads
+using Gurobi, JuMP, CSV, DataFrames, Random, Base.Threads, Logging
 
 ####################################### GLOBAL VARIABLES #######################################
 
@@ -55,6 +55,7 @@ pot1 = (
 
 pot2 = (
     Team("Real Sociedad", "Spain", 1767, 51),
+    Team("Olympiacos", "Greece", 1639, 50),
     Team("AZ Alkmaar", "Netherlands", 1591, 50),
     Team("Braga", "Portugal", 1636, 49),
     Team("Lyon", "France", 1713, 44),
@@ -167,7 +168,7 @@ end
 
 const all_nationalities = get_li_nationalities(teams)
 
-function get_index_of_team(team_name::String)::Int
+function get_index_from_team_name(team_name::String)::Int
     return club_index[team_name]
 end
 
@@ -224,18 +225,24 @@ function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{St
             constraints[team.club] = Constraint(
                 Set{String}(),         # played_home initialized as an empty Set
                 Set{String}(),         # played_ext initialized as an empty Set
-                team_nationalities     # nationalities dictionary
+                team_nationalities     # nationalities dictionnary
             )
         end
     end
     return constraints
 end
 
+# Update the constraints based on the new match
+# home is the team playing at home and away is the team playing away
 function update_constraints(home::Team, away::Team, constraints::Dict{String,Constraint})
+    if (away.club in constraints[home.club].played_home) || (home.club in constraints[away.club].played_ext)
+        @warn "Match already played. Home: $(home.club), Away: $(away.club)"
+    else
+        constraints[home.club].nationalities[away.nationality] += 1
+        constraints[away.club].nationalities[home.nationality] += 1
+    end
     push!(constraints[home.club].played_home, away.club)
     push!(constraints[away.club].played_ext, home.club)
-    constraints[home.club].nationalities[away.nationality] += 1
-    constraints[away.club].nationalities[home.nationality] += 1
 end
 
 function silence_output(f::Function)
@@ -253,7 +260,7 @@ end
 
 function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}, new_match::NTuple{2,Team})::Bool
     model = Model(Gurobi.Optimizer; add_bridges=false)
-    set_optimizer_attribute(model, "Seed", rand(1:10000000)) # random solution
+    set_optimizer_attribute(model, "Seed", rand(1:1000000000)) # random solution
     set_optimizer_attribute(model, "OutputFlag", 0)
     set_optimizer_attribute(model, "LogToConsole", 0) # No logging to consol
     T = 8
@@ -277,20 +284,20 @@ function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}
 
 
     # Constraint for the initially selected admissible match
-    home_idx, away_idx = get_index_of_team(new_match[1].club), get_index_of_team(new_match[2].club)
-    selected_idx = get_index_of_team(selected_team.club)
+    home_idx, away_idx = get_index_from_team_name(new_match[1].club), get_index_from_team_name(new_match[2].club)
+    selected_idx = get_index_from_team_name(selected_team.club)
     @constraint(model, sum(match_vars[selected_idx, home_idx, t] for t in 1:T) == 1)
     @constraint(model, sum(match_vars[away_idx, selected_idx, t] for t in 1:T) == 1)
 
     # Applying constraints based on previously played matches and nationality constraints
     for (club, cons) in constraints
-        club_idx = get_index_of_team(club)
+        club_idx = get_index_from_team_name(club)
         for home_club in cons.played_home
-            home_idx = get_index_of_team(home_club)
+            home_idx = get_index_from_team_name(home_club)
             @constraint(model, sum(match_vars[club_idx, home_idx, t] for t in 1:T) == 1)
         end
         for away_club in cons.played_ext
-            away_idx = get_index_of_team(away_club)
+            away_idx = get_index_from_team_name(away_club)
             @constraint(model, sum(match_vars[away_idx, club_idx, t] for t in 1:T) == 1)
         end
     end
@@ -362,6 +369,7 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
     #On pourrait directement renvoyer (home_team, away_team) on fait le test par précaution
     if home_team !== nothing && away_team !== nothing && home_team != away_team
         match = (home_team, away_team)
+        #On vérifie que les adversaires ne sont pas de la même nationalité que selected_team
         if home_team.nationality != selected_team.nationality && away_team.nationality != selected_team.nationality
             if solve_problem(selected_team, constraints, match)
                 push!(true_matches, match)
@@ -432,7 +440,6 @@ function tirage_au_sort_uefa_sequential()
         for pot_index in 1:4
             println("Mélange des indices pour le pot $pot_index")
             indices = shuffle!(collect(1:9))  # Mélange des indices
-            
             # Accès au pot correspondant dans TeamsContainer
             pot = if pot_index == 1
                 teams.pot1
@@ -512,7 +519,7 @@ end
 
 
 
-function tirage_au_sort_uefa(nb_draw::Int; sequential=false)
+function tirage_au_sort_uefa(nb_draw::Int)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
@@ -548,11 +555,11 @@ function tirage_au_sort_uefa(nb_draw::Int; sequential=false)
 
                     home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
 
-                    matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_of_team(home.club)
-                    matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot, s] = get_index_of_team(away.club)
+                    matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_from_team_name(home.club)
+                    matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot, s] = get_index_from_team_name(away.club)
 
-                    elo_opponents[get_index_of_team(selected_team.club), s] += away.elo + home.elo
-                    uefa_opponents[get_index_of_team(selected_team.club), s] += away.uefa + home.uefa
+                    elo_opponents[get_index_from_team_name(selected_team.club), s] += away.elo + home.elo
+                    uefa_opponents[get_index_from_team_name(selected_team.club), s] += away.uefa + home.uefa
 
                     update_constraints(selected_team, home, constraints)
                     update_constraints(away, selected_team, constraints)
@@ -595,18 +602,23 @@ end
 
 
 
-function tirage_au_sort_randomized(nb_draw::Int; sequential=false)
+function tirage_au_sort_randomized(nb_draw::Int)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
-    @threads for s in 1:nb_draw
+    for s in 1:nb_draw
         constraints = initialize_constraints(teams, all_nationalities)
-        matches_list = []
-        shuffled_order = shuffle!(collect(1:36)) # Mélange de l'ordre des équipes pour qui nous allons déterminer les adversaires
+        shuffled_order = shuffle(collect(1:36)) # Mélange de l'ordre des équipes pour qui nous allons déterminer les adversaires
+        open("order_selection.txt", "a") do file
+            write(file, shuffled_order)
+        end
+        @info "Shuffled order: $shuffled_order"
         for index_team in shuffled_order
+            @info "Selected team index: $index_team"
             selected_team = get_team_from_index(index_team)
-            opponent_pots_shuffled_indexes = shuffle!(collect(1:4))  # Mélange des indices
-
+            @info "Selected team: $(selected_team.club)"
+            opponent_pots_shuffled_indexes = shuffle(collect(1:4))  # Mélange des indices
+            @info "Shuffled opponent pots indexes: $opponent_pots_shuffled_indexes"
             for idx_opponent_pot in opponent_pots_shuffled_indexes
                 opponent_pot = if idx_opponent_pot == 1
                     teams.pot1
@@ -618,13 +630,23 @@ function tirage_au_sort_randomized(nb_draw::Int; sequential=false)
                     teams.pot4
                 end
 
-                home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
+                home = nothing
+                away = nothing
+                try
+                    home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
+                    @info "Selected home team: $(home.club)"
+                    @info "Selected away team: $(away.club)"
+                catch e
+                    @error "Error while trying to find a match for $(selected_team.club) against pot $idx_opponent_pot"
+                    @error "The constraints for that team are $(constraints[selected_team.club])"
+                    throw(e)
+                end
 
-                matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_of_team(home.club)
-                matches[get_index_of_team(selected_team.club), 2*idx_opponent_pot, s] = get_index_of_team(away.club)
+                matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot-1, s] = get_index_from_team_name(home.club)
+                matches[get_index_from_team_name(selected_team.club), 2*idx_opponent_pot, s] = get_index_from_team_name(away.club)
 
-                elo_opponents[get_index_of_team(selected_team.club), s] += away.elo + home.elo
-                uefa_opponents[get_index_of_team(selected_team.club), s] += away.uefa + home.uefa
+                elo_opponents[get_index_from_team_name(selected_team.club), s] += away.elo + home.elo
+                uefa_opponents[get_index_from_team_name(selected_team.club), s] += away.uefa + home.uefa
 
                 update_constraints(selected_team, home, constraints)
                 update_constraints(away, selected_team, constraints)
@@ -670,10 +692,10 @@ end
 
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul = 5
+const n_simul = 1
 
 @time begin
-    tirage_au_sort(n_simul; sequential=false)
+    tirage_au_sort_randomized(n_simul)
 end
 
 
