@@ -688,7 +688,7 @@ end
 
 ###################################### COMMANDS ###################################### 
 
-println("Nombre de threads utilisés : ", Threads.nthreads())
+@info ("Nombre de threads utilisés : ", Threads.nthreads())
 
 const n_simul = 1
 
