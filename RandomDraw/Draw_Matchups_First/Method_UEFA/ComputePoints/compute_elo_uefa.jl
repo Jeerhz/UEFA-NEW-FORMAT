@@ -8,10 +8,10 @@ struct Team
 end
 
 struct TeamsContainer
-    pot1::NTuple{9,Team}
-    pot2::NTuple{9,Team}
-    pot3::NTuple{9,Team}
-    pot4::NTuple{9,Team}
+    potA::NTuple{9,Team}
+    potB::NTuple{9,Team}
+    potC::NTuple{9,Team}
+    potD::NTuple{9,Team}
     index::Dict{String,Team}
 end
 
@@ -25,19 +25,19 @@ const env = Gurobi.Env() # environnement fo Gurobi
 
 # to create an instance of TeamsContainer
 function create_teams_container(
-    pot1::NTuple{9,Team},
-    pot2::NTuple{9,Team},
-    pot3::NTuple{9,Team},
-    pot4::NTuple{9,Team}
+    potA::NTuple{9,Team},
+    potB::NTuple{9,Team},
+    potC::NTuple{9,Team},
+    potD::NTuple{9,Team}
 )::TeamsContainer
     # Build the index dictionary by iterating over each pot
-    index = Dict(team.club => team for pot in (pot1, pot2, pot3, pot4) for team in pot)
+    index = Dict(team.club => team for pot in (potA, potB, potC, potD) for team in pot)
     # Create and return the TeamsContainer instance
-    return TeamsContainer(pot1, pot2, pot3, pot4, index)
+    return TeamsContainer(potA, potB, potC, potD, index)
 end
 
 # Define the teams in each pot
-pot1 = (
+potA = (
     Team("Real", "Spain", 1985, 136),
     Team("ManCity", "England", 2057, 148),
     Team("Bayern", "Germany", 1904, 144),
@@ -49,7 +49,7 @@ pot1 = (
     Team("Barcelona", "Spain", 1894, 91)
 )
 
-pot2 = (
+potB = (
     Team("Leverkusen", "Germany", 1929, 90),
     Team("Atlético", "Spain", 1830, 89),
     Team("Atalanta", "Italy", 1879, 81),
@@ -61,7 +61,7 @@ pot2 = (
     Team("Milan", "Italy", 1821, 59)
 )
 
-pot3 = (
+potC = (
     Team("Feyenoord", "Netherlands", 1747, 57),
     Team("Sporting", "Portugal", 1824, 54.5),
     Team("Eindhoven", "Netherlands", 1794, 54),
@@ -73,7 +73,7 @@ pot3 = (
     Team("Celtic", "Scotland", 1646, 32)
 )
 
-pot4 = (
+potD = (
     Team("Bratislava", "Slovakia", 1703, 30.5),
     Team("Monaco", "France", 1780, 24),
     Team("Sparta", "Czech Republic", 1716, 22.5),
@@ -86,7 +86,7 @@ pot4 = (
 )
 
 # Use the helper function to create the TeamsContainer instance
-const teams = create_teams_container(pot1, pot2, pot3, pot4)
+const teams = create_teams_container(potA, potB, potC, potD)
 
 
 
@@ -95,7 +95,7 @@ const teams = create_teams_container(pot1, pot2, pot3, pot4)
 
 function create_club_index(teams::TeamsContainer)::Dict{String,Int}
     club_index = Dict{String,Int}()
-    for (i, pot) in enumerate((teams.pot1, teams.pot2, teams.pot3, teams.pot4))
+    for (i, pot) in enumerate((teams.potA, teams.potB, teams.potC, teams.potD))
         for (j, team) in enumerate(pot)
             club_index[team.club] = (i - 1) * 9 + j
         end
@@ -109,7 +109,7 @@ const club_index = create_club_index(teams)
 
 function get_li_nationalities(teams::TeamsContainer)::Set{String}
     nationalities = Set{String}()
-    for pot in (teams.pot1, teams.pot2, teams.pot3, teams.pot4)
+    for pot in (teams.potA, teams.potB, teams.potC, teams.potD)
         for team in pot
             push!(nationalities, team.nationality)
         end
@@ -131,13 +131,13 @@ function get_team_nationality(teams::TeamsContainer, index::Int)::String
 
     # Récupérer le bon pot en fonction de pot_index
     if pot_index == 1
-        return teams.pot1[team_index].nationality
+        return teams.potA[team_index].nationality
     elseif pot_index == 2
-        return teams.pot2[team_index].nationality
+        return teams.potB[team_index].nationality
     elseif pot_index == 3
-        return teams.pot3[team_index].nationality
+        return teams.potC[team_index].nationality
     elseif pot_index == 4
-        return teams.pot4[team_index].nationality
+        return teams.potD[team_index].nationality
     else
         error("Index out of bounds")
     end
@@ -151,7 +151,7 @@ end
 
 function initialize_constraints(teams::TeamsContainer, all_nationalities::Set{String})::Dict{String,Constraint}
     constraints = Dict{String,Constraint}()
-    for pot in (teams.pot1, teams.pot2, teams.pot3, teams.pot4)
+    for pot in (teams.potA, teams.potB, teams.potC, teams.potD)
         for team in pot
             # Initialize all nationalities to 0 for each team
             team_nationalities = Dict(nat => 0 for nat in all_nationalities)
@@ -236,10 +236,10 @@ function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}
     end
 
     # Nationality constraints
-    for (i, pot_i) in enumerate((teams.pot1, teams.pot2, teams.pot3, teams.pot4))
+    for (i, pot_i) in enumerate((teams.potA, teams.potB, teams.potC, teams.potD))
         for (j, team_j) in enumerate(pot_i)
             team_idx = (i - 1) * 9 + j
-            for (k, pot_k) in enumerate((teams.pot1, teams.pot2, teams.pot3, teams.pot4))
+            for (k, pot_k) in enumerate((teams.potA, teams.potB, teams.potC, teams.potD))
                 for (l, team_l) in enumerate(pot_k)
                     if team_j.nationality == team_l.nationality && team_idx != ((k - 1) * 9 + l)
                         @constraint(model, sum(match_vars[team_idx, (k-1)*9+l, t] for t in 1:T) == 0)
@@ -373,13 +373,13 @@ function tirage_au_sort(nb_draw::Int, constraints::Dict{String,Constraint}; sequ
 
             # Accès au pot correspondant dans TeamsContainer
             pot = if pot_index == 1
-                teams.pot1
+                teams.potA
             elseif pot_index == 2
-                teams.pot2
+                teams.potB
             elseif pot_index == 3
-                teams.pot3
+                teams.potC
             elseif pot_index == 4
-                teams.pot4
+                teams.potD
             end
 
             for i in indices
@@ -387,13 +387,13 @@ function tirage_au_sort(nb_draw::Int, constraints::Dict{String,Constraint}; sequ
 
                 for idx_opponent_pot in 1:4
                     opponent_pot = if idx_opponent_pot == 1
-                        teams.pot1
+                        teams.potA
                     elseif idx_opponent_pot == 2
-                        teams.pot2
+                        teams.potB
                     elseif idx_opponent_pot == 3
-                        teams.pot3
+                        teams.potC
                     elseif idx_opponent_pot == 4
-                        teams.pot4
+                        teams.potD
                     end
 
                     home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]

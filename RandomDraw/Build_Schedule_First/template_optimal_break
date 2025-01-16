@@ -75,10 +75,10 @@ end
 
 
 # Fonction pour ajouter une contrainte de matchs maximum entre deux pots par journée
-function add_max_inter_pot_constraint(pot1_start, pot1_end, pot2_start, pot2_end, min_matches, max_matches)
+function add_max_inter_pot_constraint(potA_start, potA_end, potB_start, potB_end, min_matches, max_matches)
     for t in 1:T
-        @constraint(model, min_matches <= sum(x[i, j, t] for i in pot1_start:pot1_end, j in pot2_start:pot2_end) + 
-                            sum(x[i, j, t] for i in pot2_start:pot2_end, j in pot1_start:pot1_end) <= max_matches)
+        @constraint(model, min_matches <= sum(x[i, j, t] for i in potA_start:potA_end, j in potB_start:potB_end) + 
+                            sum(x[i, j, t] for i in potB_start:potB_end, j in potA_start:potA_end) <= max_matches)
     end
 end
 
@@ -152,10 +152,10 @@ add_no_consecutive_inter_pot_matches_constraint(28, 36) # avec Pot D
 =#
 
 #=
-function add_no_consecutive_inter_pot_matches_constraint(pot1_start, pot1_end, pot2_start, pot2_end)
-    for i in pot1_start:pot1_end
+function add_no_consecutive_inter_pot_matches_constraint(potA_start, potA_end, potB_start, potB_end)
+    for i in potA_start:potA_end
         for t in 1:(T-1)
-            @constraint(model, sum(x[i, j, t] + x[i, j, t+1] + x[j, i, t] + x[j, i, t+1] for j in pot2_start:pot2_end) <= 1)
+            @constraint(model, sum(x[i, j, t] + x[i, j, t+1] + x[j, i, t] + x[j, i, t+1] for j in potB_start:potB_end) <= 1)
         end
     end
 end

@@ -20,7 +20,7 @@ include("draw_matchups_first.jl")
 
     # Test get_index_from_team_name
     @testset "get_index_from_team_name" begin
-        index = get_index_from_team_name("Ajax")
+        index = get_club_index_from_team_name("Ajax")
         @test index == 4
     end
 
@@ -39,7 +39,7 @@ include("draw_matchups_first.jl")
 
     # Test get_team_from_index
     @testset "get_team_from_index" begin
-        team = get_team_from_index(13)
+        team = get_team_from_club_index(13)
         @test team.club == "Real Sociedad"
         @test team.nationality == "Spain"
     end
@@ -75,19 +75,19 @@ include("draw_matchups_first.jl")
     @testset "true_admissible_matches" begin
         constraints = initialize_constraints(teams, all_nationalities)
         roma = get_team_from_name("Roma")
-        opponents = true_admissible_matches(roma, teams.pot2, constraints)
+        opponents = true_admissible_matches(roma, teams.potB, constraints)
         @test length(opponents) > 0
     end
 
     # Test tirage_au_sort_uefa_sequential
     @testset "tirage_au_sort_uefa_sequential" begin
-        silence_output(() -> tirage_au_sort_uefa_sequential())
+        silence_output(() -> uefa_draw_sequential())
         @test isfile("tirage_au_sort.txt")
     end
 
     # Test tirage_au_sort_randomized
     @testset "tirage_au_sort_randomized" begin
-        silence_output(() -> tirage_au_sort_randomized(1))
+        silence_output(() -> uefa_draw_randomized(1))
         @test isfile("matches_draw_matchups_first_bis.txt")
     end
 
