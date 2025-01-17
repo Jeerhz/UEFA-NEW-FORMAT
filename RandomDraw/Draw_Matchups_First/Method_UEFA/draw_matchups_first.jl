@@ -400,8 +400,8 @@ This function returns the team from the opponent group that the selected team ha
 We can have either 0 or 1 team.
 """
 function get_team_already_played_home(selected_team::Team, opponent_group::NTuple{9,Team}, constraints::Dict{String,Constraint})::Union{Team,Nothing}
-    li_home_selected_team = constraints[selected_team.club].played_home
-    for home_club_name in li_home_selected_team
+    set_home_selected_team_name = constraints[selected_team.club].played_home
+    for home_club_name in set_home_selected_team_name
         home_team = get_team_from_name(home_club_name)
         if home_team in opponent_group
             return home_team
@@ -412,8 +412,8 @@ end
 
 
 function get_team_already_played_away(selected_team::Team, opponent_group::NTuple{9,Team}, constraints::Dict{String,Constraint})::Union{Team,Nothing}
-    li_away_selected_team = constraints[selected_team.club].played_ext
-    for away_club_name in li_away_selected_team
+    set_away_selected_team_name = constraints[selected_team.club].played_ext
+    for away_club_name in set_away_selected_team_name
         away_team = get_team_from_name(away_club_name)
         if away_team in opponent_group
             return away_team
@@ -437,10 +437,16 @@ function true_admissible_matches(selected_team::Team, opponent_group::NTuple{9,T
 
     #If we already have selected the match, we just return the couple (home, away)
     if home_team !== nothing && away_team !== nothing
-        @assert home_team != away_team "Home Opponent and Away Opponnent for $(selected_team.club) in pot $(opponent_group) are the same teams"
-        @info "Returned home-away opponent already selected $(match)"
-        @assert get_team_already_played_away(home_team, selected_team_pot, constraints).club != selected_team.club "Constraint inconsistency: $(selected_team.club) has played home against $(home_team.club) but $(home_team.club) has played not played away against $(selected_team.club) \n Constraints for Selected Team are $(constraints[selected_team.club]) \n Constraints for HomeTeam are $(constraints[home_team.club]) \n Result of  get_team_already_played_away(home_team, selected_team_pot, constraints) = $( get_team_already_played_away(home_team, selected_team_pot, constraints)) "
-        @assert solve_problem(selected_team, constraints, match) "Can't find a solution with the already selected match"
+        if (home_team.club == away_team.club)
+            error("Home Opponent and Away Opponnent for $(selected_team.club) in pot $(opponent_group) are the same teams")
+        end
+        @info "Returned home-away opponent already selected $((home_team.club, away_team.club))"
+        if (get_team_already_played_away(home_team, selected_team_pot, constraints).club != selected_team.club)
+            error("Constraint inconsistency: $(selected_team.club) has played home against $(home_team.club) but $(home_team.club) has played not played away against $(selected_team.club) \n Constraints for Selected Team are $(constraints[selected_team.club]) \n Constraints for HomeTeam are $(constraints[home_team.club]) \n Result of  get_team_already_played_away(home_team, selected_team_pot, constraints) = $(get_team_already_played_away(home_team, selected_team_pot, constraints).club)")
+        end
+        if solve_problem(selected_team, constraints, (home_team, away_team)) === false
+            error("Can't find a solution with the already selected match")
+        end
         return Vector{Tuple{Team,Team}}([(home_team, away_team)])
     end
 
@@ -795,8 +801,8 @@ end
 @info ("Nombre de threads utilisés : ", Threads.nthreads())
 
 const n_simul = 2
-
 @time begin
+    Logging.disable_logging(Logging.Info) # Disable debug and info
     uefa_draw_randomized(n_simul)
 end
 
