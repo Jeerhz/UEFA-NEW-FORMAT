@@ -47,17 +47,7 @@ struct Constraint
 end
 
 
-
-const env = Gurobi.Env(
-    Dict{String,Any}(
-        "OutputFlag" => 0,     # Suppress console output
-        "LogToConsole" => 0,   # No logging to console
-        "FeasibilityTol" => 1e-2, # Largest tolerance for integer variables
-    ),
-)
-
-
-
+const env = Gurobi.Env() # environnement for Gurobi
 
 # to create an instance of TeamsContainer
 function create_teams_container(
@@ -330,7 +320,9 @@ This function solves the linear programming problem regarding a couple of
     we're not maximizing or minimizing a specific goal. 
 """
 function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}, new_match::NTuple{2,Team})::Bool
-    model = direct_model(Gurobi.Optimizer(env))
+    model = Model(() -> Gurobi.Optimizer(env))
+    set_optimizer_attribute(model, "OutputFlag", 0)
+    set_optimizer_attribute(model, "LogToConsole", 0) # No logging to consol
     T = 8 # Number of matchdays
 
     @variable(model, match_vars[1:36, 1:36, 1:8], Bin)
@@ -399,7 +391,7 @@ function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}
     # Solve the problem
     optimize!(model)
 
-    return termination_status(model) != MOI.INFEASIBLE
+    return termination_status(model) == MOI.OPTIMAL
 end
 
 
@@ -724,8 +716,7 @@ function uefa_draw_randomized(nb_draw::Int)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
-    # @threads for s in 1:nb_draw
-    for s in 1:nb_draw
+    @threads for s in 1:nb_draw
         constraints = initialize_constraints(all_nationalities)
         shuffled_order = shuffle(collect(1:36))
         open("order_selection.txt", "a") do file
@@ -811,11 +802,8 @@ end
 
 const n_simul = 2
 @time begin
-    # Logging.disable_logging(Logging.Info) # Disable debug and info
+    Logging.disable_logging(Logging.Info) # Disable debug and info
     uefa_draw_randomized(n_simul)
 end
-
-# Free the environment after usage
-Gurobi.free!(env)
 
 
