@@ -824,7 +824,7 @@ const n_simul = 1
 @time begin
     Logging.disable_logging(Logging.Info) # Disable debug and info
     uefa_draw_randomized(n_simul)
-    @success "$(n_simul) draws have been successfully performed"
+    @info "$(n_simul) draws have been successfully performed"
 end
 
 
