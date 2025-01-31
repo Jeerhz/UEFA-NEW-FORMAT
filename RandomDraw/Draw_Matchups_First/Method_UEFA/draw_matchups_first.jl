@@ -724,8 +724,7 @@ function uefa_draw_randomized(nb_draw::Int)
     elo_opponents = zeros(Float64, 36, nb_draw)
     uefa_opponents = zeros(Float64, 36, nb_draw)
     matches = zeros(Int, 36, 8, nb_draw)
-    # @threads for s in 1:nb_draw
-    for s in 1:nb_draw
+    @threads for s in 1:nb_draw
         constraints = initialize_constraints(all_nationalities)
         shuffled_order = shuffle(collect(1:36))
         open("order_selection.txt", "a") do file
@@ -752,6 +751,7 @@ function uefa_draw_randomized(nb_draw::Int)
                 home = nothing
                 away = nothing
                 try
+                    @info "Opponent pot: $idx_opponent_pot"
                     home, away = true_admissible_matches(selected_team, opponent_pot, constraints)[rand(1:end)]
                     @info "Selected home team: $(home.club)"
                     @info "Selected away team: $(away.club)"
@@ -814,8 +814,5 @@ const n_simul = 2
     # Logging.disable_logging(Logging.Info) # Disable debug and info
     uefa_draw_randomized(n_simul)
 end
-
-# Free the environment after usage
-Gurobi.free!(env)
 
 
