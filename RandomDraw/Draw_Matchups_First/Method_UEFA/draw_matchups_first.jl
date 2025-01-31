@@ -50,7 +50,7 @@ end
 
 const env = Gurobi.Env(
     Dict{String,Any}(
-        "OutputFlag" => 0,     # Suppress console output
+        "OutputFlag" => 0,    # Suppress console output
         "LogToConsole" => 0,   # No logging to console
         "FeasibilityTol" => 1e-2, # Largest tolerance for integer variables
     ),
@@ -809,9 +809,9 @@ end
 
 @info ("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul = 2
+const n_simul = 1
 @time begin
-    # Logging.disable_logging(Logging.Info) # Disable debug and info
+    Logging.disable_logging(Logging.Info) # Disable debug and info
     uefa_draw_randomized(n_simul)
 end
 
