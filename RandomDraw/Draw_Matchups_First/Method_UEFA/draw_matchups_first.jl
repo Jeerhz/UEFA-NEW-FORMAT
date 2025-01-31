@@ -47,12 +47,13 @@ struct Constraint
 end
 
 
-
+"""
+We set up once the Gurobi environment
+"""
 const env = Gurobi.Env(
     Dict{String,Any}(
         "OutputFlag" => 0,    # Suppress console output
         "LogToConsole" => 0,   # No logging to console
-        "FeasibilityTol" => 1e-2, # Largest tolerance for integer variables
     ),
 )
 
@@ -399,9 +400,19 @@ function solve_problem(selected_team::Team, constraints::Dict{String,Constraint}
     # Solve the problem
     optimize!(model)
 
-    return termination_status(model) != MOI.INFEASIBLE
-end
+    status = termination_status(model)
 
+    # Check the status of the model to see if it is feasible
+    if status == MOI.INFEASIBLE
+        return false
+    elseif status == MOI.OPTIMAL || status == MOI.FEASIBLE_POINT
+        return true
+    elseif status == MOI.NUMERICAL_ERROR || status == MOI.OTHER_ERROR
+        error("Numerical issue detected. The result may be unreliable.")
+    else
+        error("Unexpected solver status: $status")
+    end
+end
 
 """
 This function returns the team from the opponent group that the selected team has already played at home.
@@ -813,6 +824,7 @@ const n_simul = 1
 @time begin
     Logging.disable_logging(Logging.Info) # Disable debug and info
     uefa_draw_randomized(n_simul)
+    @success "$(n_simul) draws have been successfully performed"
 end
 
 
