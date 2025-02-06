@@ -1,11 +1,33 @@
 ############################################ IMPORTS ############################################
 using Gurobi, SCIP, JuMP, CSV, DataFrames, Random, Base.Threads, Logging
-####################################### GLOBAL VARIABLES #######################################
-
+####################################### CONFIG VARIABLES #######################################
 const SOLVER = "SCIP" # Alternative: "Gurobi"
 const LEAGUE = "CHAMPIONS_LEAGUE" # Alternative: "EUROPA_LEAGUE"
 const NB_DRAWS = 1
 const DEBUG = false
+####################################### GLOBAL VARIABLES #######################################
+
+#We set up once the SOLVER environment only once 
+if SOLVER == "Gurobi"
+	const env = Gurobi.Env(
+		Dict{String, Any}(
+			"OutputFlag" => 0,    # Suppress console output
+			"LogToConsole" => 0,   # No logging to console
+		),
+	)
+elseif SOLVER == "SCIP"
+	# Syntax found here: https://jump.dev/JuMP.jl/stable/manual/models/#Solvers-which-expect-environments
+	const env = SCIP.Optimizer
+else
+	error("Invalid SOLVER")
+end
+
+#Show the configuration of the draws
+@info ("Nombre de threads utilisés : ", Threads.nthreads())
+@info "Starting Draw with $NB_DRAWS draws, for $LEAGUE, using $SOLVER solver"
+if DEBUG == false
+	Logging.disable_logging(Logging.Info) # Disable debug and info
+end
 
 """
 Represents a football team with its attributes:
@@ -49,9 +71,6 @@ struct Constraint
 	played_ext::Set{String}
 	nationalities::Dict{String, Int}
 end
-
-
-
 
 
 # to create an instance of TeamsContainer
@@ -823,36 +842,7 @@ end
 
 
 ###################################### COMMANDS ###################################### 
-
-@info ("Nombre de threads utilisés : ", Threads.nthreads())
-"""
-We set up once the SOLVER environment only once 
-"""
-
-# If we use Gurobi we can set up the environment only once
-if SOLVER == "Gurobi"
-	const env = Gurobi.Env(
-		Dict{String, Any}(
-			"OutputFlag" => 0,    # Suppress console output
-			"LogToConsole" => 0,   # No logging to console
-		),
-	)
-elseif SOLVER == "SCIP"
-	# Syntax found here: https://jump.dev/JuMP.jl/stable/manual/models/#Solvers-which-expect-environments
-	const env = SCIP.Optimizer
-else
-	error("Invalid SOLVER")
-end
-
-@info "Starting Draw with $NB_DRAWS draws, for $LEAGUE, using $SOLVER solver"
-
-if DEBUG == false
-	Logging.disable_logging(Logging.Info) # Disable debug and info
-end
-
 @time begin
 	uefa_draw_randomized(NB_DRAWS)
 	@info "$(n_simul) draws have been successfully performed"
 end
-
-
