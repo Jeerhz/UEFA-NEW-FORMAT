@@ -1,13 +1,13 @@
 ############################################ IMPORTS ############################################
-using Gurobi, SCIP, JuMP, CSV, DataFrames, Random, Base.Threads, Logging
+using Gurobi, JuMP, SCIP, ConstraintSolver, MathOptInterface, CSV, DataFrames, Random, Base.Threads, Logging
 ####################################### CONFIG VARIABLES #######################################
-const SOLVER = "SCIP" # Alternative: "Gurobi"
+const SOLVER = "CONSTRAINT_SOLVER" # Alternative: "Gurobi", "CONSTRAINT_SOLVER"
 const LEAGUE = "CHAMPIONS_LEAGUE" # Alternative: "EUROPA_LEAGUE"
 const NB_DRAWS = 1
 const DEBUG = false
 ####################################### GLOBAL VARIABLES #######################################
-
-#We set up once the SOLVER environment only once 
+# using Gurobi
+# We set up once the SOLVER environment only once 
 if SOLVER == "Gurobi"
 	const env = Gurobi.Env(
 		Dict{String, Any}(
@@ -18,6 +18,11 @@ if SOLVER == "Gurobi"
 elseif SOLVER == "SCIP"
 	# Syntax found here: https://jump.dev/JuMP.jl/stable/manual/models/#Solvers-which-expect-environments
 	const env = SCIP.Optimizer
+
+elseif SOLVER == "CONSTRAINT_SOLVER"
+	const CS = ConstraintSolver
+	const env = CS.Optimizer
+
 else
 	error("Invalid SOLVER")
 end
@@ -333,6 +338,7 @@ function silence_output(f::Function)
 	end
 end
 
+####################################### OPTIMIZED SOLVER FUNCTION #######################################
 """
 This function solves the linear programming problem regarding a couple of 
 	possible opponents for a selected team and and the current state of the constraints.
@@ -347,7 +353,7 @@ This function solves the linear programming problem regarding a couple of
 function solve_problem(selected_team::Team, constraints::Dict{String, Constraint}, new_match::NTuple{2, Team})::Bool
 	if SOLVER == "Gurobi"
 		model = direct_model(Gurobi.Optimizer(env))
-	elseif SOLVER == "SCIP"
+	elseif SOLVER == "SCIP" || SOLVER == "CONSTRAINT_SOLVER"
 		model = Model(env)
 		set_attribute(model, "display/verblevel", 0)
 
@@ -436,6 +442,156 @@ function solve_problem(selected_team::Team, constraints::Dict{String, Constraint
 		error("Unexpected SOLVER status: $status")
 	end
 end
+
+
+# Alternative implementation using ConstraintSolver.jl
+# """
+# Determines whether a feasible schedule exists for the Champions League new format using ConstraintSolver.jl.
+# This function uses best practices:
+#   - Local precomputation of team, pot, and nationality data.
+#   - Grouped constraints for daily scheduling, pot match-ups, pairing consistency, and nationality limits.
+#   - Reified constraints to force a prescribed home and away match for the selected team.
+#   - Solver tuning via attributes (e.g. TimeLimit, Verbosity).
+# Returns true if a feasible schedule is found.
+# """
+# function solve_problem(selected_team::Team, constraints::Dict{String, Constraint}, new_match::NTuple{2, Team})::Bool
+# 	# Precompute local data (36 teams).
+# 	local_teams = vcat(collect(potA), collect(potB), collect(potC), collect(potD))
+# 	nteams = length(local_teams)  # should be 36
+# 	T = 8
+# 	days = 1:T
+
+# 	# Build team-to-index mapping.
+# 	team_to_idx = Dict{String, Int}()
+# 	for (i, t) in enumerate(local_teams)
+# 		team_to_idx[t.club] = i
+# 	end
+
+# 	# Build pot mapping.
+# 	pot_of = Dict{Int, Symbol}()
+# 	for (t, _) in zip(potA, 1:length(potA))
+# 		pot_of[team_to_idx[t.club]] = :A
+# 	end
+# 	for (t, _) in zip(potB, 1:length(potB))
+# 		pot_of[team_to_idx[t.club]] = :B
+# 	end
+# 	for (t, _) in zip(potC, 1:length(potC))
+# 		pot_of[team_to_idx[t.club]] = :C
+# 	end
+# 	for (t, _) in zip(potD, 1:length(potD))
+# 		pot_of[team_to_idx[t.club]] = :D
+# 	end
+
+# 	# Precompute indices of teams in each pot.
+# 	pot_indices = Dict{Symbol, Vector{Int}}()
+# 	for label in [:A, :B, :C, :D]
+# 		pot_indices[label] = [i for i in 1:nteams if pot_of[i] == label]
+# 	end
+
+# 	# Precompute nationalities and build mapping.
+# 	nationalities = sort(collect(Set(t.nationality for t in local_teams)))
+# 	nat_index = Dict{String, Int}()
+# 	for (idx, nat) in enumerate(nationalities)
+# 		nat_index[nat] = idx
+# 	end
+# 	N = length(nationalities)
+
+# 	# --- Create CP model with solver tuning ---
+# 	model = Model(env)
+
+# 	# --- Decision Variables ---
+# 	# x[i,j,d] == 1 if team i hosts team j on day d.
+# 	@variable(model, x[1:nteams, 1:nteams, days], Bin)
+
+# 	# --- Group I: Basic Scheduling Constraints ---
+# 	# Prevent self-matches.
+# 	for i in 1:nteams, d in days
+# 		@constraint(model, x[i, i, d] == 0)
+# 	end
+
+# 	# Table constraints for match direction.
+# 	# Use a 3×2 matrix for allowed pairs.
+# 	allowed_pairs = [0 0; 1 0; 0 1]
+# 	for d in days, i in 1:nteams, j in (i+1):nteams
+# 		@constraint(model, [x[i, j, d], x[j, i, d]] in CS.TableSet(allowed_pairs))
+# 	end
+
+# 	# Daily scheduling: each team plays exactly one match per day.
+# 	for d in days, i in 1:nteams
+# 		@constraint(model, sum(x[i, j, d] for j in 1:nteams) + sum(x[j, i, d] for j in 1:nteams) == 1)
+# 	end
+
+# 	# Pot constraints: For each team and each pot, enforce one home and one away match.
+# 	for i in 1:nteams
+# 		for pot_label in [:A, :B, :C, :D]
+# 			opps = (pot_of[i] == pot_label) ? [j for j in pot_indices[pot_label] if j != i] : pot_indices[pot_label]
+# 			@constraint(model, sum(x[i, j, d] for j in opps, d in days) == 1)
+# 			@constraint(model, sum(x[j, i, d] for j in opps, d in days) == 1)
+# 		end
+# 	end
+
+# 	# Pairing consistency: any two teams meet at most once.
+# 	for i in 1:nteams, j in (i+1):nteams
+# 		@constraint(model, sum(x[i, j, d] + x[j, i, d] for d in days) <= 1)
+# 	end
+
+# 	# --- Group Extra: Incorporate Already Played Matches from constraints parameter ---
+# 	# For each team, if it has already played at home or away against another, force that match.
+# 	for (club, club_constraints) in constraints
+# 		club_idx = team_to_idx[club]
+# 		for home_club in club_constraints.played_home
+# 			home_idx = team_to_idx[home_club]
+# 			@constraint(model, sum(x[club_idx, home_idx, d] for d in days) == 1)
+# 		end
+# 		for away_club in club_constraints.played_ext
+# 			away_idx = team_to_idx[away_club]
+# 			@constraint(model, sum(x[away_idx, club_idx, d] for d in days) == 1)
+# 		end
+# 	end
+
+# 	# --- Group II: Nationality Constraints ---
+# 	@variable(model, count[1:nteams, 1:N], Int, lower_bound = 0, upper_bound = 8)
+# 	for i in 1:nteams
+# 		for nat in nationalities
+# 			idx = nat_index[nat]
+# 			allowed_teams = [j for j in 1:nteams if local_teams[j].nationality == nat]
+# 			@constraint(model, count[i, idx] == sum(x[i, j, d] + x[j, i, d] for j in allowed_teams, d in days))
+# 			if local_teams[i].nationality == nat
+# 				@constraint(model, count[i, idx] == 0)
+# 			else
+# 				# Instead of a vector of one-element tuples, we create a 3×1 matrix.
+# 				@constraint(model, [count[i, idx]] in CS.TableSet(reshape([0, 1, 2], 3, 1)))
+# 			end
+# 		end
+# 	end
+
+# 	# --- Group III: Forced Matches using Reified Constraints ---
+# 	# Force the selected team to play one prescribed home match against new_match[1]
+# 	# and one prescribed away match against new_match[2].
+# 	i_sel = team_to_idx[selected_team.club]
+# 	j_home = team_to_idx[new_match[1].club]
+# 	j_away = team_to_idx[new_match[2].club]
+
+# 	b_home = [@variable(model, binary = true) for d in days]
+# 	for d in days
+# 		@constraint(model, b_home[d] := {x[i_sel, j_home, d] == 1})
+# 	end
+# 	@constraint(model, sum(b_home) == 1)
+
+# 	b_away = [@variable(model, binary = true) for d in days]
+# 	for d in days
+# 		@constraint(model, b_away[d] := {x[j_away, i_sel, d] == 1})
+# 	end
+# 	@constraint(model, sum(b_away) == 1)
+
+# 	# --- Objective: Feasibility (Dummy Objective) ---
+# 	@objective(model, Min, 0)
+
+# 	optimize!(model)
+# 	status = termination_status(model)
+# 	return status == MOI.OPTIMAL || status == MOI.FEASIBLE_POINT
+# end
+
 
 """
 This function returns the team from the opponent group that the selected team has already played at home.
