@@ -272,12 +272,23 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_po
 		end
 	end
 
+	# # Ensure that each team plays at most 2 matches against teams from same nationality
+	# for team_index in 1:nb_teams
+	# 	for nationality_group in nationalities
+	# 		for opponent_team_index in nationality_group
+	# 			for placeholder_index in 1:nb_teams
+	# 				for neighbor in opponents[placeholder_index]
+	# 					@constraint(model, sum(y[team_index, placeholder_index] + y[opponent_team_index, neighbor] <= 1)
+	# 				end
+	# 				@constraint(model, sum(y[compatriot, neighbor] for compatriot in nationalities[nat] for neighbor in opponents[placeholder]) <= 2)
+	# 			end
+	# 		end
+	# end
 
-	# Ensure that each team plays at most 2 matches against teams from same nationality
-	for placeholder in 1:nb_teams
-		for nat in 1:nb_nat
-			# there can't be more than two teams of this nationality associated with this placeholder
-			@constraint(model, sum(y[compatriot, neighbor] for compatriot in nationalities[nat] for neighbor in opponents[placeholder]) <= 2)
+	# Every placeholder shall have at most 2 opponents from the same nationality
+	for placeholder_index in 1:nb_teams
+		for nationality_group in nationalities
+			@constraint(model, sum(y[team_index, opponent_placeholder] for team_index in nationality_group for opponent_placeholder in opponents[placeholder_index]) <= 2)
 		end
 	end
 
