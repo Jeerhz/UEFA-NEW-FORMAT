@@ -1,29 +1,25 @@
 """
 This script performs the draw for the method Build Schedule First.
-
+Added typing and performance optimizations.
 """
 ############################################ IMPORTS ############################################
 using JuMP, SCIP, MathOptInterface
-# using Plots
 using Statistics
 using Random
-# using Profile # profiler
-using Base.Threads # parallelization
+using Base.Threads
 using Logging
-
 
 ####################################### GLOBAL VARIABLES #######################################
 
-
-const nb_pots = 4 # number of pots
-const nb_teams_per_pot = 9 # number of teams per pot
-const nb_teams = 36  # number of teams (= nb_pots*nb_teams_per_pot)
+const nb_pots::Int = 4 # number of pots
+const nb_teams_per_pot::Int = 9 # number of teams per pot
+const nb_teams::Int = 36  # number of teams (= nb_pots*nb_teams_per_pot)
 
 """
 Matrix of shape 36x8 representing the 8 opponents of each team in the draw
 opponents[i] : list of placeholders connected to placeholder i
 """
-const opponents =
+const opponents::Vector{Vector{Int}} =
 	[[18, 9, 19, 36, 11, 2, 32, 26],
 		[31, 21, 3, 16, 27, 1, 14, 33],
 		[10, 32, 2, 13, 26, 22, 36, 4],
@@ -61,98 +57,104 @@ const opponents =
 		[22, 10, 34, 4, 13, 36, 8, 20],
 		[28, 12, 23, 1, 18, 35, 3, 25]]
 
+# Type definition for team data
+struct TeamData
+	club::String
+	nationality::String
+	elo::Int
+	uefa::Float64
+end
+
 # Champions League
-const teams = [
-	Dict("club" => "Real", "nationality" => "Spain", "elo" => 1985, "uefa" => 136),                    #1
-	Dict("club" => "ManCity", "nationality" => "England", "elo" => 2057, "uefa" => 148),               #2
-	Dict("club" => "Bayern", "nationality" => "Germany", "elo" => 1904, "uefa" => 144),                #3
-	Dict("club" => "PSG", "nationality" => "France", "elo" => 1893, "uefa" => 116),                    #4
-	Dict("club" => "Liverpool", "nationality" => "England", "elo" => 1908, "uefa" => 114),             #5
-	Dict("club" => "Inter", "nationality" => "Italy", "elo" => 1960, "uefa" => 101),                   #6
-	Dict("club" => "Dortmund", "nationality" => "Germany", "elo" => 1874, "uefa" => 97),               #7
-	Dict("club" => "Leipzig", "nationality" => "Germany", "elo" => 1849, "uefa" => 97),                #8
-	Dict("club" => "Barcelona", "nationality" => "Spain", "elo" => 1894, "uefa" => 91),                #9
-	Dict("club" => "Leverkusen", "nationality" => "Germany", "elo" => 1929, "uefa" => 90),             #10
-	Dict("club" => "Atlético", "nationality" => "Spain", "elo" => 1830, "uefa" => 89),                 #11
-	Dict("club" => "Atalanta", "nationality" => "Italy", "elo" => 1879, "uefa" => 81),                 #12
-	Dict("club" => "Juventus", "nationality" => "Italy", "elo" => 1839, "uefa" => 80),                 #13
-	Dict("club" => "Benfica", "nationality" => "Portugal", "elo" => 1824, "uefa" => 79),               #14
-	Dict("club" => "Arsenal", "nationality" => "England", "elo" => 1957, "uefa" => 72),                #15
-	Dict("club" => "Brugge", "nationality" => "Belgium", "elo" => 1703, "uefa" => 64),                 #16
-	Dict("club" => "Shakhtar", "nationality" => "Ukraine", "elo" => 1573, "uefa" => 63),               #17
-	Dict("club" => "Milan", "nationality" => "Italy", "elo" => 1821, "uefa" => 59),                    #18
-	Dict("club" => "Feyenoord", "nationality" => "Netherlands", "elo" => 1747, "uefa" => 57),          #19
-	Dict("club" => "Sporting", "nationality" => "Portugal", "elo" => 1824, "uefa" => 54.5),            #20
-	Dict("club" => "Eindhoven", "nationality" => "Netherlands", "elo" => 1794, "uefa" => 54),          #21
-	Dict("club" => "Dinamo", "nationality" => "Croatia", "elo" => 1584, "uefa" => 50),                 #22
-	Dict("club" => "Salzburg", "nationality" => "Austria", "elo" => 1693, "uefa" => 50),               #23
-	Dict("club" => "Lille", "nationality" => "France", "elo" => 1785, "uefa" => 47),                   #24
-	Dict("club" => "Crvena", "nationality" => "Serbia", "elo" => 1734, "uefa" => 40),                  #25
-	Dict("club" => "YB", "nationality" => "Switzerland", "elo" => 1566, "uefa" => 34.5),               #26
-	Dict("club" => "Celtic", "nationality" => "Scotland", "elo" => 1646, "uefa" => 32),                #27
-	Dict("club" => "Bratislava", "nationality" => "Slovakia", "elo" => 1703, "uefa" => 30.5),          #28
-	Dict("club" => "Monaco", "nationality" => "France", "elo" => 1780, "uefa" => 24),                  #29
-	Dict("club" => "Sparta", "nationality" => "Czech Republic", "elo" => 1716, "uefa" => 22.5),        #30
-	Dict("club" => "Aston Villa", "nationality" => "England", "elo" => 1772, "uefa" => 20.86),         #31
-	Dict("club" => "Bologna", "nationality" => "Italy", "elo" => 1777, "uefa" => 18.056),              #32
-	Dict("club" => "Girona", "nationality" => "Spain", "elo" => 1791, "uefa" => 17.897),               #33
-	Dict("club" => "Stuttgart", "nationality" => "Germany", "elo" => 1795, "uefa" => 17.324),          #34
-	Dict("club" => "Sturm Graz", "nationality" => "Austria", "elo" => 1610, "uefa" => 14.500),         #35
-	Dict("club" => "Brest", "nationality" => "France", "elo" => 1685, "uefa" => 13.366),                #36 
+const teams::Vector{TeamData} = [
+	TeamData("Real", "Spain", 1985, 136),                    #1
+	TeamData("ManCity", "England", 2057, 148),               #2
+	TeamData("Bayern", "Germany", 1904, 144),                #3
+	TeamData("PSG", "France", 1893, 116),                    #4
+	TeamData("Liverpool", "England", 1908, 114),             #5
+	TeamData("Inter", "Italy", 1960, 101),                   #6
+	TeamData("Dortmund", "Germany", 1874, 97),               #7
+	TeamData("Leipzig", "Germany", 1849, 97),                #8
+	TeamData("Barcelona", "Spain", 1894, 91),                #9
+	TeamData("Leverkusen", "Germany", 1929, 90),             #10
+	TeamData("Atlético", "Spain", 1830, 89),                 #11
+	TeamData("Atalanta", "Italy", 1879, 81),                 #12
+	TeamData("Juventus", "Italy", 1839, 80),                 #13
+	TeamData("Benfica", "Portugal", 1824, 79),               #14
+	TeamData("Arsenal", "England", 1957, 72),                #15
+	TeamData("Brugge", "Belgium", 1703, 64),                 #16
+	TeamData("Shakhtar", "Ukraine", 1573, 63),               #17
+	TeamData("Milan", "Italy", 1821, 59),                    #18
+	TeamData("Feyenoord", "Netherlands", 1747, 57),          #19
+	TeamData("Sporting", "Portugal", 1824, 54.5),            #20
+	TeamData("Eindhoven", "Netherlands", 1794, 54),          #21
+	TeamData("Dinamo", "Croatia", 1584, 50),                 #22
+	TeamData("Salzburg", "Austria", 1693, 50),               #23
+	TeamData("Lille", "France", 1785, 47),                   #24
+	TeamData("Crvena", "Serbia", 1734, 40),                  #25
+	TeamData("YB", "Switzerland", 1566, 34.5),               #26
+	TeamData("Celtic", "Scotland", 1646, 32),                #27
+	TeamData("Bratislava", "Slovakia", 1703, 30.5),          #28
+	TeamData("Monaco", "France", 1780, 24),                  #29
+	TeamData("Sparta", "Czech Republic", 1716, 22.5),        #30
+	TeamData("Aston Villa", "England", 1772, 20.86),         #31
+	TeamData("Bologna", "Italy", 1777, 18.056),              #32
+	TeamData("Girona", "Spain", 1791, 17.897),               #33
+	TeamData("Stuttgart", "Germany", 1795, 17.324),          #34
+	TeamData("Sturm Graz", "Austria", 1610, 14.500),         #35
+	TeamData("Brest", "France", 1685, 13.366),               #36 
 ]
 
-# Europa League
-# const teams = [
-#     Dict("club" => "Roma", "nationality" => "Italy", "elo" => 1812, "uefa" => 101),                       #1
-#     Dict("club" => "Man Utd", "nationality" => "England", "elo" => 1779, "uefa" => 92),                   #2
-#     Dict("club" => "Porto", "nationality" => "Portugal", "elo" => 1778, "uefa" => 77),                    #3
-#     Dict("club" => "Ajax", "nationality" => "Netherlands", "elo" => 1619, "uefa" => 67),                  #4
-#     Dict("club" => "Rangers", "nationality" => "Scotland", "elo" => 1618, "uefa" => 63),                  #5
-#     Dict("club" => "Frankfurt", "nationality" => "Germany", "elo" => 1697, "uefa" => 60),                 #6
-#     Dict("club" => "Lazio", "nationality" => "Italy", "elo" => 1785, "uefa" => 54),                       #7
-#     Dict("club" => "Tottenham", "nationality" => "England", "elo" => 1791, "uefa" => 54),                 #8
-#     Dict("club" => "Slavia Praha", "nationality" => "Czech Republic", "elo" => 1702, "uefa" => 53),       #9
-#     Dict("club" => "Real Sociedad", "nationality" => "Spain", "elo" => 1767, "uefa" => 51),               #10
-#     Dict("club" => "AZ Alkmaar", "nationality" => "Netherlands", "elo" => 1591, "uefa" => 50),            #11
-#     Dict("club" => "Braga", "nationality" => "Portugal", "elo" => 1636, "uefa" => 49),                    #12
-#     Dict("club" => "Olympiacos", "nationality" => "Greece", "elo" => 1673, "uefa" => 48),                 #13
-#     Dict("club" => "Lyon", "nationality" => "France", "elo" => 1713, "uefa" => 44),                       #14
-#     Dict("club" => "PAOK", "nationality" => "Greece", "elo" => 1639, "uefa" => 37),                       #15
-#     Dict("club" => "Fenerbahçe", "nationality" => "Turkey", "elo" => 1714, "uefa" => 36),                 #16
-#     Dict("club" => "M. Tel-Aviv", "nationality" => "Israel", "elo" => 1614, "uefa" => 35.5),              #17
-#     Dict("club" => "Ferencvaros", "nationality" => "Hungary", "elo" => 1479, "uefa" => 35),               #18
-#     Dict("club" => "Qarabag", "nationality" => "Azerbaijan", "elo" => 1597, "uefa" => 33),                #19
-#     Dict("club" => "Galatasaray", "nationality" => "Turkey", "elo" => 1721, "uefa" => 31.5),              #20
-#     Dict("club" => "Viktoria Plzen", "nationality" => "Czech Republic", "elo" => 1572, "uefa" => 28),     #21
-#     Dict("club" => "Bodo/Glimt", "nationality" => "Norway", "elo" => 1598, "uefa" => 28),                 #22
-#     Dict("club" => "Union SG", "nationality" => "Belgium", "elo" => 1701, "uefa" => 27),                  #23
-#     Dict("club" => "Dynamo Kyiv", "nationality" => "Ukraine", "elo" => 1517, "uefa" => 26.5),             #24
-#     Dict("club" => "Ludogorets", "nationality" => "Bulgaria", "elo" => 1512, "uefa" => 26),               #25
-#     Dict("club" => "Midtjylland", "nationality" => "Denmark", "elo" => 1624, "uefa" => 25.5),             #26
-#     Dict("club" => "Malmo", "nationality" => "Sweden", "elo" => 1493, "uefa" => 18.5),                    #27
-#     Dict("club" => "Athletic Club", "nationality" => "Spain", "elo" => 1764, "uefa" => 17.897),           #28
-#     Dict("club" => "Hoffenheim", "nationality" => "Germany", "elo" => 1683, "uefa" => 17.324),            #29
-#     Dict("club" => "Nice", "nationality" => "France", "elo" => 1703, "uefa" => 17),                       #30
-#     Dict("club" => "Anderlecht", "nationality" => "Belgium", "elo" => 1640, "uefa" => 14.5),              #31
-#     Dict("club" => "Twente", "nationality" => "Netherlands", "elo" => 1627, "uefa" => 12.650),            #32
-#     Dict("club" => "Besiktas", "nationality" => "Turkey", "elo" => 1484, "uefa" => 12),                   #33
-#     Dict("club" => "FCSB", "nationality" => "Romania", "elo" => 1434, "uefa" => 10.5),                    #34
-#     Dict("club" => "RFS", "nationality" => "Latvia", "elo" => 1225, "uefa" => 8),                         #35
-#     Dict("club" => "Elfsborg", "nationality" => "Sweden", "elo" => 1403, "uefa" => 4.3)                   #36
+
+# Europa League teams using TeamData struct
+# const teams::Vector{TeamData} = [
+# 	TeamData("Roma", "Italy", 1812, 101),                       #1
+# 	TeamData("Man Utd", "England", 1779, 92),                   #2
+# 	TeamData("Porto", "Portugal", 1778, 77),                    #3
+# 	TeamData("Ajax", "Netherlands", 1619, 67),                  #4
+# 	TeamData("Rangers", "Scotland", 1618, 63),                  #5
+# 	TeamData("Frankfurt", "Germany", 1697, 60),                 #6
+# 	TeamData("Lazio", "Italy", 1785, 54),                       #7
+# 	TeamData("Tottenham", "England", 1791, 54),                 #8
+# 	TeamData("Slavia Praha", "Czech Republic", 1702, 53),       #9
+# 	TeamData("Real Sociedad", "Spain", 1767, 51),               #10
+# 	TeamData("AZ Alkmaar", "Netherlands", 1591, 50),            #11
+# 	TeamData("Braga", "Portugal", 1636, 49),                    #12
+# 	TeamData("Olympiacos", "Greece", 1673, 48),                 #13
+# 	TeamData("Lyon", "France", 1713, 44),                       #14
+# 	TeamData("PAOK", "Greece", 1639, 37),                       #15
+# 	TeamData("Fenerbahçe", "Turkey", 1714, 36),                 #16
+# 	TeamData("M. Tel-Aviv", "Israel", 1614, 35.5),              #17
+# 	TeamData("Ferencvaros", "Hungary", 1479, 35),               #18
+# 	TeamData("Qarabag", "Azerbaijan", 1597, 33),                #19
+# 	TeamData("Galatasaray", "Turkey", 1721, 31.5),              #20
+# 	TeamData("Viktoria Plzen", "Czech Republic", 1572, 28),     #21
+# 	TeamData("Bodo/Glimt", "Norway", 1598, 28),                 #22
+# 	TeamData("Union SG", "Belgium", 1701, 27),                  #23
+# 	TeamData("Dynamo Kyiv", "Ukraine", 1517, 26.5),             #24
+# 	TeamData("Ludogorets", "Bulgaria", 1512, 26),               #25
+# 	TeamData("Midtjylland", "Denmark", 1624, 25.5),             #26
+# 	TeamData("Malmo", "Sweden", 1493, 18.5),                    #27
+# 	TeamData("Athletic Club", "Spain", 1764, 17.897),           #28
+# 	TeamData("Hoffenheim", "Germany", 1683, 17.324),            #29
+# 	TeamData("Nice", "France", 1703, 17),                       #30
+# 	TeamData("Anderlecht", "Belgium", 1640, 14.5),              #31
+# 	TeamData("Twente", "Netherlands", 1627, 12.650),            #32
+# 	TeamData("Besiktas", "Turkey", 1484, 12),                   #33
+# 	TeamData("FCSB", "Romania", 1434, 10.5),                    #34
+# 	TeamData("RFS", "Latvia", 1225, 8),                         #35
+# 	TeamData("Elfsborg", "Sweden", 1403, 4.3)                   #36
 # ]
 
+
 # Champions League
 # team_nationalities[i] : nationality of team i
-const team_nationalities =
+const team_nationalities::Vector{Int} =
 	[1, 2, 3, 4, 2, 5, 3, 3, 1, 3, 1, 5, 5, 6, 2, 7, 8, 5, 9, 6, 9, 10, 11, 4, 12, 13, 14, 15, 4, 16, 2, 5, 1, 3, 11, 4]
 
-# Europa League
-# team_nationalities[i] : nationality of team i
-# const team_nationalities = 
-# [1, 2, 3, 4, 5, 6, 1, 2, 14, 7, 4, 3, 8, 9, 8, 10, 11, 12, 13, 10, 14, 15, 16, 17, 18, 19, 20, 7, 6, 9, 16, 4, 10, 21, 22, 20]
-
 # Champions League
-const nationalities = # nationalities[i] : list of teams of nationality i 
+# nationalities[i] : list of teams of nationality i 
+const nationalities::Vector{Vector{Int}} =
 	[[1, 9, 11, 33], # Spain
 		[2, 5, 15, 31], # England
 		[3, 7, 8, 10, 34], #  Germany
@@ -172,7 +174,7 @@ const nationalities = # nationalities[i] : list of teams of nationality i
 	]
 
 # Europa League
-# const nationalities = # nationalities[i] : list of teams of nationality i
+# const nationalities::Vector{Vector{Int}} = # nationalities[i] : list of teams of nationality i
 # [   [1, 7],               # Italy
 #     [2, 8],               # England
 #     [3, 12],              # Portugal
@@ -197,11 +199,6 @@ const nationalities = # nationalities[i] : list of teams of nationality i
 #     [35],                 # Latvia
 # ]
 
-# Champions League
-const nb_nat = 16 # number of different nationalities
-
-# Europa League
-# const nb_nat = 22 # number of different nationalities
 
 const env = SCIP.Optimizer
 
@@ -212,14 +209,22 @@ Returns true if new_team in new_placeholder can lead to a solution given already
 
 Parameters
 ----------
-...
-already_filled: list of 36 integers (0 if not filled, team index otherwise)
-	already_filled[i] = j means that team j is already assigned to placeholder i. If already_filled[i] = 0, then placeholder i is not yet assigned to a team.
+already_filled: Vector{Int} - array of 36 integers (0 if not filled, team index otherwise)
+	already_filled[i] = j means that team j is already assigned to placeholder i. 
+	If already_filled[i] = 0, then placeholder i is not yet assigned to a team.
 """
-function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_pots, nb_teams_per_pot, new_team, new_placeholder, already_filled)::bool
+function is_solvable(
+	nationalities::Vector{Vector{Int}},
+	opponents::Vector{Vector{Int}},
+	team_nationalities::Vector{Int},
+	nb_pots::Int,
+	nb_teams_per_pot::Int,
+	new_team::Int,
+	new_placeholder::Int,
+	already_filled::Vector{Int},
+)::Bool
 	model = Model(env)
 	set_attribute(model, "display/verblevel", 0)
-
 
 	nb_teams = nb_pots * nb_teams_per_pot
 	# y[i,j] = 1 if team i is in placeholder j, 0 otherwise
@@ -256,10 +261,9 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_po
 			@constraint(model, sum(y[(pot_index-1)*nb_teams_per_pot+team_pot_index, (pot_index-1)*nb_teams_per_pot+placeholder_pot_index] for team_pot_index in 1:nb_teams_per_pot) == 1)
 			for other_pot_index in 1:nb_pots
 				if other_pot_index != pot_index
-					@constraint(model, sum(y[(pot_index-1)*nb_teams_per_pot+team_pot_index, (other_pot_index-1)*nb_teams_per_pot+team_other_pot_index] for team_other_pot_index in 1:nb_teams_per_pot) == 0)
+					@constraint(model, sum(y[(other_pot_index-1)*nb_teams_per_pot+team_pot_index, (pot_index-1)*nb_teams_per_pot+placeholder_pot_index] for team_pot_index in 1:nb_teams_per_pot) == 0)
 				end
 			end
-
 		end
 	end
 
@@ -278,7 +282,6 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_po
 		end
 	end
 
-
 	# Every placeholder shall have at most 2 opponents from the same nationality
 	for placeholder_index in 1:nb_teams
 		for nationality_group in nationalities
@@ -287,29 +290,43 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_po
 	end
 
 	# Write the constraints for the already filled placeholders
-	for team_index in 1:nb_teams
-		if already_filled[team_index] > 0 # placeholder already assigned to a team
-			@constraint(model, y[already_filled[team_index], team_index] == 1)
+	for placeholder_index in 1:nb_teams
+		if already_filled[placeholder_index] > 0
+			@constraint(model, y[already_filled[placeholder_index], placeholder_index] == 1)
 		end
 	end
 
 	# Add the new constraint for the new team in the new placeholder
-	@constraint(model, y[new_team, new_placeholder] == 1) # test the new team in the new placeholder 
-
+	@constraint(model, y[new_team, new_placeholder] == 1)
 	optimize!(model)
 	return termination_status(model) == MOI.OPTIMAL
 end
 
-
 """
-Returns the list of possible teams for placeholder given already_filled
+Returns the list of possible teams for placeholder given already_filled.
+That excludes the teams that are not from the same pot as the placeholder, as well as the teams that are already assigned to a placeholder.
+For the remaining teams, it checks with solver if the problem is solvable with the new team in the new placeholder.
 """
-function admissible_teams(nationalities, opponents, nb_nat, team_nationalities, nb_pots, nb_teams_per_pot, placeholder, already_filled)
+function admissible_teams(
+	nationalities::Vector{Vector{Int}},
+	opponents::Vector{Vector{Int}},
+	team_nationalities::Vector{Int},
+	nb_pots::Int,
+	nb_teams_per_pot::Int,
+	selected_placeholder::Int,
+	already_filled::Vector{Int},
+)::Vector{Int}
 	possible_teams = Int[]
-	placeholder_pot = div(placeholder - 1, 9)
-	for team in (placeholder_pot*nb_teams_per_pot+1):((placeholder_pot+1)*nb_teams_per_pot)
-		if !(team in already_filled) # team not already assigned to a placeholder
-			if is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_pots, nb_teams_per_pot, team, placeholder, already_filled) # does not cause a failure
+	placeholder_pot = div(selected_placeholder - 1, nb_teams_per_pot) + 1
+	pot_start = (placeholder_pot - 1) * nb_teams_per_pot + 1
+	pot_end = placeholder_pot * nb_teams_per_pot
+
+	# Pre-allocate for the maximum possible size
+	sizehint!(possible_teams, nb_teams_per_pot)
+
+	for team in pot_start:pot_end
+		if !(team in already_filled)
+			if is_solvable(nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, team, selected_placeholder, already_filled)
 				push!(possible_teams, team)
 			end
 		end
@@ -317,69 +334,104 @@ function admissible_teams(nationalities, opponents, nb_nat, team_nationalities, 
 	return possible_teams
 end
 
+"""
+Performs the draw for the method Build Schedule First.
+We select iteratively a placeholder and get the list of possible teams for this placeholder in the sense that it can lead to a solution.
+We then select randomly a team from this list and assign it to the placeholder.
+"""
+function draw(
+	nationalities::Vector{Vector{Int}},
+	opponents::Vector{Vector{Int}},
+	team_nationalities::Vector{Int},
+	nb_pots::Int,
+	nb_teams_per_pot::Int,
+	nb_teams::Int,
+	is_random::Bool = true,
+)::Vector{Int}
+	@assert nb_teams == nb_pots * nb_teams_per_pot
+	already_filled = zeros(Int, nb_teams)
 
-function draw(nationalities, opponents, nb_nat, team_nationalities, p, q, n) # performs the draw ; draw[i] : team at placeholder i    
-	already_filled = zeros(Int, n)
-	# normal draw
-	#placeholder_order = 1:n
-	# randomized draw
-	placeholder_order = shuffle!(collect(1:n))
+	if is_random
+		placeholder_order = shuffle!(collect(1:nb_teams))
+	else
+		placeholder_order = collect(1:nb_teams)
+	end
+
 	for placeholder in placeholder_order
-		possible_teams = admissible_teams(nationalities, opponents, nb_nat, team_nationalities, p, q, placeholder, already_filled)
+		possible_teams = admissible_teams(nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, placeholder, already_filled)
 		team = possible_teams[rand(1:end)]
 		already_filled[placeholder] = team
 	end
 	return already_filled
 end
 
+"""
+Performs successive draws for the method Build Schedule First.
+The results are written in txt files.
+"""
+function tirage_au_sort(
+	nb_draw::Int,
+	teams::Vector{TeamData},
+	nationalities::Vector{Vector{Int}},
+	opponents::Vector{Vector{Int}},
+	team_nationalities::Vector{Int},
+	nb_pots::Int,
+	nb_teams_per_pot::Int,
+	nb_teams::Int,
+)::Int
+	@assert nb_teams == nb_pots * nb_teams_per_pot
 
-function tirage_au_sort(nb_draw, teams, nationalities, opponents, nb_nat, team_nationalities, p, q, n)
-	elo_opponents = zeros(Float64, n, nb_draw)
-	uefa_opponents = zeros(Float64, n, nb_draw)
-	matches = zeros(Int, 36, 8, nb_draw)
+	# Pre-allocate arrays for better performance
+	elo_opponents = zeros(Float64, nb_teams, nb_draw)
+	uefa_opponents = zeros(Float64, nb_teams, nb_draw)
+	matches = zeros(Int, nb_teams, 8, nb_draw)
+
 	@threads for i in 1:nb_draw
-		draw_i = draw(nationalities, opponents, nb_nat, team_nationalities, p, q, n)
-		for placeholder in 1:n
+		draw_i = draw(nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams)
+
+		for placeholder in 1:nb_teams
 			team = draw_i[placeholder]
-			matches[team, :, i] = [draw_i[opp] for opp in opponents[placeholder]]
-			elo_opponents[team, i] = sum(teams[draw_i[opp]]["elo"] for opp in opponents[placeholder])
-			uefa_opponents[team, i] = sum(teams[draw_i[opp]]["uefa"] for opp in opponents[placeholder])
+			opponent_indices = opponents[placeholder]
+			opponent_teams = [draw_i[opp] for opp in opponent_indices]
+			matches[team, :, i] = opponent_teams
+			elo_opponents[team, i] = sum(teams[opp_team].elo for opp_team in opponent_teams)
+			uefa_opponents[team, i] = sum(teams[opp_team].uefa for opp_team in opponent_teams)
 		end
-	end
-	open("bsf_rd_ucl_elo.txt", "a") do file
-		for i in 1:nb_draw
-			row = join(elo_opponents[:, i], " ")
-			write(file, row * "\n")
-		end
-	end
 
-	open("bsf_rd_ucl_uefa.txt", "a") do file
-		for i in 1:nb_draw
-			row = join(uefa_opponents[:, i], " ")
-			write(file, row * "\n")
-		end
-	end
-
-	open("bsf_rd_ucl_matches.txt", "a") do file
-		for i in 1:nb_draw
-			for team in 1:36
-				matchups = [(team, matches[team, k, i]) for k in 1:8]
-				row = join(matchups, " ")
-				write(file, row * " ")
+		open("bsf_rd_ucl_elo.txt", "a") do file
+			for i in 1:nb_draw
+				row = join(elo_opponents[:, i], " ")
+				write(file, row * "\n")
 			end
-			write(file, "\n")
+		end
+
+		open("bsf_rd_ucl_uefa.txt", "a") do file
+			for i in 1:nb_draw
+				row = join(uefa_opponents[:, i], " ")
+				write(file, row * "\n")
+			end
+		end
+
+		open("bsf_rd_ucl_matches.txt", "a") do file
+			for i in 1:nb_draw
+				for team in 1:36
+					matchups = [(team, matches[team, k, i]) for k in 1:8]
+					row = join(matchups, " ")
+					write(file, row * " ")
+				end
+				write(file, "\n")
+			end
 		end
 	end
 	return 0
 end
 
-
 ###################################### COMMANDS ###################################### 
 
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul = 1
+const n_simul::Int = 1
 
 @time begin
-	tirage_au_sort(n_simul, teams, nationalities, opponents, nb_nat, team_nationalities, p, q, n)
+	tirage_au_sort(n_simul, teams, nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams)
 end

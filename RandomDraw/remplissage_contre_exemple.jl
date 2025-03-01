@@ -1,3 +1,6 @@
+"""
+This script is used to attribute teams to the vertices of the counter-example graph according to the constraints of the problem.
+"""
 using JuMP, Gurobi
 
 edges_colored = [
