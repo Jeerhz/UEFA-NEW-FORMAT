@@ -8,8 +8,8 @@ using JuMP
 if isdefined(Main, :Gurobi) || Base.find_package("Gurobi") !== nothing
 	using Gurobi
 end
-
 using SCIP, MathOptInterface, Statistics, Random, Base.Threads, Logging
+
 ####################################### DRAW PARAMETERS #######################################
 const SOLVER::String = "GUROBI" # Alternative: "Gurobi", "SCIP"
 const LEAGUE::String = "CHAMPIONS_LEAGUE" # Alternative: "EUROPA_LEAGUE"
@@ -419,7 +419,7 @@ function tirage_au_sort(
 	matches = zeros(Int, nb_teams, 8, nb_draw)
 
 	@threads for i in 1:nb_draw
-		draw_i = draw(nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams)
+		draw_i = draw(nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams, is_random)
 
 		for placeholder in 1:nb_teams
 			team = draw_i[placeholder]
@@ -462,5 +462,5 @@ end
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
 @time begin
-	tirage_au_sort(NB_DRAWS, teams, nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams, true)
+	tirage_au_sort(NB_DRAWS, teams, nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams, IS_RANDOM)
 end
