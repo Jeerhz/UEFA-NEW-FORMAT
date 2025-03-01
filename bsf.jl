@@ -206,11 +206,17 @@ const nb_nat = 16 # number of different nationalities
 const env = SCIP.Optimizer
 
 ################################### CODE FOR SIMULATIONS ###################################
+"""
+Check if given a current state of the draw, a new team - placeholder assignment can lead to a solution of the draw.
+Returns true if new_team in new_placeholder can lead to a solution given already_filled, false otherwise
+
+Parameters
+----------
+...
+already_filled: list of 36 integers (0 if not filled, team index otherwise)
+	already_filled[i] = j means that team j is already assigned to placeholder i. If already_filled[i] = 0, then placeholder i is not yet assigned to a team.
+"""
 function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_pots, nb_teams_per_pot, new_team, new_placeholder, already_filled)::bool
-	"""
-	Check if given a current state of the draw, a new team - placeholder assignment can lead to a solution of the draw.
-	Returns true if new_team in new_placeholder can lead to a solution given already_filled, false otherwise
-	"""
 	model = Model(env)
 	set_attribute(model, "display/verblevel", 0)
 
@@ -272,34 +278,22 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_po
 		end
 	end
 
-	# # Ensure that each team plays at most 2 matches against teams from same nationality
-	# for team_index in 1:nb_teams
-	# 	for nationality_group in nationalities
-	# 		for opponent_team_index in nationality_group
-	# 			for placeholder_index in 1:nb_teams
-	# 				for neighbor in opponents[placeholder_index]
-	# 					@constraint(model, sum(y[team_index, placeholder_index] + y[opponent_team_index, neighbor] <= 1)
-	# 				end
-	# 				@constraint(model, sum(y[compatriot, neighbor] for compatriot in nationalities[nat] for neighbor in opponents[placeholder]) <= 2)
-	# 			end
-	# 		end
-	# end
 
 	# Every placeholder shall have at most 2 opponents from the same nationality
 	for placeholder_index in 1:nb_teams
 		for nationality_group in nationalities
-			@constraint(model, sum(y[team_index, opponent_placeholder] for team_index in nationality_group for opponent_placeholder in opponents[placeholder_index]) <= 2)
+			@constraint(model, sum(y[team_index, opponent_placeholder_index] for team_index in nationality_group for opponent_placeholder_index in opponents[placeholder_index]) <= 2)
 		end
 	end
 
-
-
-	for i in 1:nb_teams
-		if already_filled[i] > 0 # placeholder already assigned to a team
-			@constraint(model, y[already_filled[i], i] == 1)
+	# Write the constraints for the already filled placeholders
+	for team_index in 1:nb_teams
+		if already_filled[team_index] > 0 # placeholder already assigned to a team
+			@constraint(model, y[already_filled[team_index], team_index] == 1)
 		end
 	end
 
+	# Add the new constraint for the new team in the new placeholder
 	@constraint(model, y[new_team, new_placeholder] == 1) # test the new team in the new placeholder 
 
 	optimize!(model)
@@ -307,12 +301,15 @@ function is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_po
 end
 
 
-function admissible_teams(nationalities, opponents, nb_nat, team_nationalities, p, q, placeholder, already_filled) # returns the list of possible teams for placeholder given already_filled
+"""
+Returns the list of possible teams for placeholder given already_filled
+"""
+function admissible_teams(nationalities, opponents, nb_nat, team_nationalities, nb_pots, nb_teams_per_pot, placeholder, already_filled)
 	possible_teams = Int[]
-	pot = div(placeholder - 1, 9)
-	for team in (pot*q+1):((pot+1)*q)
+	placeholder_pot = div(placeholder - 1, 9)
+	for team in (placeholder_pot*nb_teams_per_pot+1):((placeholder_pot+1)*nb_teams_per_pot)
 		if !(team in already_filled) # team not already assigned to a placeholder
-			if is_solvable(nationalities, opponents, nb_nat, team_nationalities, p, q, team, placeholder, already_filled) # does not cause a failure
+			if is_solvable(nationalities, opponents, nb_nat, team_nationalities, nb_pots, nb_teams_per_pot, team, placeholder, already_filled) # does not cause a failure
 				push!(possible_teams, team)
 			end
 		end
