@@ -378,6 +378,7 @@ function tirage_au_sort(
 	nb_pots::Int,
 	nb_teams_per_pot::Int,
 	nb_teams::Int,
+	is_random::Bool = true,
 )::Int
 	@assert nb_teams == nb_pots * nb_teams_per_pot
 
@@ -430,8 +431,8 @@ end
 
 println("Nombre de threads utilisés : ", Threads.nthreads())
 
-const n_simul::Int = 1
+const n_simul::Int = 15
 
 @time begin
-	tirage_au_sort(n_simul, teams, nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams)
+	tirage_au_sort(n_simul, teams, nationalities, opponents, team_nationalities, nb_pots, nb_teams_per_pot, nb_teams, true)
 end
