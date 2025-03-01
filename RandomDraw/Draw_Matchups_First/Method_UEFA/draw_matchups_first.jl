@@ -1,5 +1,8 @@
 ############################################ IMPORTS ############################################
-using Gurobi, JuMP, SCIP, ConstraintSolver, MathOptInterface, CSV, DataFrames, Random, Base.Threads, Logging
+if isdefined(Main, :Gurobi) || Base.find_package("Gurobi") !== nothing
+	using Gurobi
+end
+using JuMP, SCIP, ConstraintSolver, MathOptInterface, CSV, DataFrames, Random, Base.Threads, Logging
 ####################################### CONFIG VARIABLES #######################################
 const SOLVER = "CONSTRAINT_SOLVER" # Alternative: "Gurobi", "CONSTRAINT_SOLVER"
 const LEAGUE = "CHAMPIONS_LEAGUE" # Alternative: "EUROPA_LEAGUE"
@@ -24,7 +27,7 @@ elseif SOLVER == "CONSTRAINT_SOLVER"
 	const env = CS.Optimizer
 
 else
-	error("Invalid SOLVER")
+	error("Invalid SOLVER. Please chose between 'Gurobi', 'SCIP' or 'CONSTRAINT_SOLVER'")
 end
 
 #Show the configuration of the draws
