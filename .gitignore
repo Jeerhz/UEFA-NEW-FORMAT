@@ -296,3 +296,6 @@ dist
 
 # results of draws
 *.txt
+
+
+node_modules/
