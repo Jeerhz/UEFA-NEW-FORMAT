@@ -29,6 +29,17 @@ import {
   Code,
 } from "lucide-react";
 
+const keywords = [
+  "Fairness in Sports",
+  "Draw Procedure",
+  "Sports Scheduling",
+  "Graph Theory",
+  "Chromatic Index",
+  "Integer Programming",
+  "Monte Carlo Simulations",
+  "UEFA Champions League",
+];
+
 export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
@@ -37,19 +48,18 @@ export default function Home() {
         <section className="relative z-10 text-center mb-16 rounded-3xl overflow-hidden bg-gradient-to-r from-[#0e1e5b] to-[#0a3da8] p-8 shadow-xl">
           <div className="absolute inset-0 bg-[url('/images/champions-league-pattern.png')] opacity-10 mix-blend-overlay"></div>
           <h1 className="text-3xl md:text-5xl font-extrabold mb-4 mt-4 text-white drop-shadow-md">
-            Drawing League Phase Matchups in the{" "}
-            <span className="text-[#cfa749]">New UEFA Champions League</span>
+            Drawing League Phase Matchups in the <br />
+            <span className="text-[#cfa749]">
+              New UEFA Champions League Format
+            </span>
           </h1>
 
-          <p className="text-sm md:text-base mb-8 text-white/80 max-w-2xl mx-auto">
-            A mathematical approach to understanding and simulating the new
-            Champions League format <br />
-            Keywords. Fairness in sports, draw procedure, sports scheduling,
-            graph theory, chromatic index, integer programming, Monte Carlo
-            simulations, UEFA Champions League.
+          <p className="text-xl text-white/80 mb-8 max-w-3xl mx-auto">
+            A mathematical approach to ensure fairness, feasibility, and
+            competitive balance
           </p>
 
-          {/* Enhanced Keywords Display */}
+          {/* Keywords Display */}
           <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-3xl mx-auto">
             {keywords.map((keyword, index) => (
               <span

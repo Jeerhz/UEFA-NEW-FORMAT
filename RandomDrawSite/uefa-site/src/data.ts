@@ -1,25 +1,62 @@
 // Represents a home-away pair with a fixed tuple [string, string].
-type HomeAway = {
+export type HomeAway = {
   matchups: [string, string];
 };
 
 // Represents a pot draw with an array of admissible matchups and one selected matchup.
-type PotDraw = {
-  opponent_pot_index: number; // Changed from int to number (TypeScript uses number)
+export type PotDraw = {
+  opponent_pot_index: number;
   admissible_matchups: HomeAway[];
   selected_matchups: HomeAway;
 };
 
 // Represents a team draw, where team_draws must contain exactly 4 PotDraw items.
-type TeamDraw = {
+export type TeamDraw = {
   selected_team_name: string;
-  team_draws: [PotDraw, PotDraw, PotDraw, PotDraw]; // exactly 4 entries
+  team_draws: [PotDraw, PotDraw, PotDraw, PotDraw];
 };
 
 // Represents a draw with an array that is expected to contain exactly 36 TeamDraw items one for each team.
-type Draw = {
+export class Draw {
   draw: TeamDraw[]; // expected to have 36 TeamDraw entries
-};
+
+  constructor(draw: TeamDraw[]) {
+    this.draw = draw;
+  }
+
+  // Method to get admissible matchups
+  getAdmissibleMatchups(
+    teamIndexInDraw: number,
+    opponentPotIndex: number
+  ): HomeAway[] {
+    console.log(
+      "Selected Team Name:",
+      this.draw[teamIndexInDraw].selected_team_name
+    );
+    console.log("Opponent Pot Index:", opponentPotIndex);
+    console.log("Team Index in Draw:", teamIndexInDraw);
+    console.log(
+      "Admissible Matchups:",
+      this.draw[teamIndexInDraw].team_draws[opponentPotIndex - 1]
+        .admissible_matchups
+    );
+    return this.draw[teamIndexInDraw].team_draws[opponentPotIndex - 1]
+      .admissible_matchups;
+  }
+
+  // Method to get the selected matchup
+  getSelectedMatchups(
+    teamIndexInDraw: number,
+    opponentPotIndex: number
+  ): HomeAway {
+    return this.draw[teamIndexInDraw].team_draws[opponentPotIndex - 1]
+      .selected_matchups;
+  }
+
+  getSelectedTeamName(teamIndexInDraw: number): string {
+    return this.draw[teamIndexInDraw].selected_team_name;
+  }
+}
 
 // Function to convert a list of strings to use the above structure
 function convert_tirages(li_li_tirages: any): Draw[] {
@@ -69,9 +106,7 @@ function convert_tirages(li_li_tirages: any): Draw[] {
       teamDraws.push(teamDraw);
     }
 
-    draws.push({
-      draw: teamDraws,
-    });
+    draws.push(new Draw(teamDraws));
   }
 
   console.log("First draw:", draws[0]);
@@ -13657,4 +13692,50 @@ const li_li_tirages = [
   ],
 ];
 
-export const groupStageMatches: Draw[] = convert_tirages(li_li_tirages);
+export const draws_list: Draw[] = convert_tirages(li_li_tirages);
+export const team_pots = {
+  pot1: [
+    "Real",
+    "ManCity",
+    "Bayern",
+    "PSG",
+    "Liverpool",
+    "Inter",
+    "Dortmund",
+    "Leipzig",
+    "Barcelona",
+  ],
+  pot2: [
+    "Leverkusen",
+    "Atlético",
+    "Atalanta",
+    "Juventus",
+    "Benfica",
+    "Arsenal",
+    "Brugge",
+    "Shakhtar",
+    "Milan",
+  ],
+  pot3: [
+    "Feyenoord",
+    "Sporting",
+    "Eindhoven",
+    "Dinamo",
+    "Salzburg",
+    "Lille",
+    "Crvena",
+    "YB",
+    "Celtic",
+  ],
+  pot4: [
+    "Bratislava",
+    "Monaco",
+    "Sparta",
+    "Aston Villa",
+    "Bologna",
+    "Girona",
+    "Stuttgart",
+    "Sturm Graz",
+    "Brest",
+  ],
+};

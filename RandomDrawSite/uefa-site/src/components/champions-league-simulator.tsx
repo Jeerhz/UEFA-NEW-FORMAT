@@ -24,61 +24,29 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
+import { type Draw, draws_list, team_pots } from "@/data";
 
-// Mock data for the simulator
-const TEAMS_DATA = {
-  pot1: [
-    "Manchester City",
-    "Bayern Munich",
-    "Real Madrid",
-    "PSG",
-    "Liverpool",
-    "Inter Milan",
-    "Dortmund",
-    "Barcelona",
-    "RB Leipzig",
-  ],
-  pot2: [
-    "Atletico Madrid",
-    "Bayer Leverkusen",
-    "Atalanta",
-    "Juventus",
-    "Benfica",
-    "Arsenal",
-    "Club Brugge",
-    "Shakhtar",
-    "FC Porto",
-  ],
-  pot3: [
-    "Salzburg",
-    "Napoli",
-    "Sporting CP",
-    "PSV",
-    "Lille",
-    "AC Milan",
-    "Young Boys",
-    "Feyenoord",
-    "Celtic",
-  ],
-  pot4: [
-    "Dinamo Zagreb",
-    "Monaco",
-    "Sturm Graz",
-    "Sparta Prague",
-    "Aston Villa",
-    "Bologna",
-    "Girona",
-    "Brest",
-    "Slovan Bratislava",
-  ],
-};
+// The draw that will operate is the one from the list of draws in draws_list
+const draw_index = Math.floor(Math.random() * draws_list.length);
+console.log("draw_index", draw_index);
+const draw: Draw = draws_list[draw_index];
 
 export function ChampionsLeagueSimulator() {
-  const [currentPot, setCurrentPot] = useState(1);
-  const [currentTeam, setCurrentTeam] = useState("");
+  const [currentSelectedPotIndex, setCurrentPot] = useState(1);
+  const [currentSelectedTeamIndexInDraw, setCurrentSelectedTeamIndexInDraw] =
+    useState(0);
+  const [currentOpponentPotIndex, setCurrentOpponentPotIndex] = useState(1);
+  const [processedOpponentPots, setProcessedOpponentPots] = useState<number[]>(
+    []
+  );
+  const [remainingOpponentPots, setRemainingOpponentPots] = useState<number[]>(
+    []
+  );
+  const [currentTeamName, setCurrentTeam] = useState("");
   const [currentStep, setCurrentStep] = useState<
     "selectTeam" | "showOpponents" | "drawOpponents"
   >("selectTeam");
+  const [startDraw, setStartDraw] = useState(true);
   const [drawComplete, setDrawComplete] = useState(false);
   const [drawResults, setDrawResults] = useState<Record<string, any>>({});
   const [potProgress, setPotProgress] = useState<Record<number, number>>({
@@ -88,7 +56,9 @@ export function ChampionsLeagueSimulator() {
     4: 0,
   });
   const [activeTab, setActiveTab] = useState("pot1");
-  const [admissibleOpponents, setAdmissibleOpponents] = useState<string[]>([]);
+  const [admissibleOpponents, setAdmissibleOpponents] = useState<
+    [string, string][]
+  >([]);
   const [selectedOpponents, setSelectedOpponents] = useState<{
     home: string;
     away: string;
@@ -98,7 +68,7 @@ export function ChampionsLeagueSimulator() {
   useEffect(() => {
     const initialResults: Record<string, any> = {};
 
-    Object.entries(TEAMS_DATA).forEach(([pot, teams]) => {
+    Object.entries(team_pots).forEach(([pot, teams]) => {
       teams.forEach((team) => {
         initialResults[team] = {
           pot: pot,
@@ -115,99 +85,189 @@ export function ChampionsLeagueSimulator() {
     setDrawResults(initialResults);
   }, []);
 
+  // Determine which opponent pots to consider when a new team is selected
+  useEffect(() => {
+    if (
+      currentTeamName &&
+      currentStep === "showOpponents" &&
+      remainingOpponentPots.length === 0
+    ) {
+      // Logic for determining which opponent pots to consider based on the current selected pot
+      const potsToConsider: number[] = [];
+
+      // For pot 1, consider pots 1,2, 3, and 4
+      // For pot 2, consider pots 2, 3, and 4
+      // For pot 3, consider pots 3 and 4
+      // For pot 4, consider pot 4
+      if (currentSelectedPotIndex === 1) {
+        potsToConsider.push(1, 2, 3, 4);
+      } else if (currentSelectedPotIndex === 2) {
+        potsToConsider.push(2, 3, 4);
+      } else if (currentSelectedPotIndex === 3) {
+        potsToConsider.push(3, 4);
+      } else if (currentSelectedPotIndex === 4) {
+        potsToConsider.push(4);
+      }
+
+      setRemainingOpponentPots(potsToConsider);
+      setProcessedOpponentPots([]);
+
+      if (potsToConsider.length > 0) {
+        setCurrentOpponentPotIndex(potsToConsider[0]);
+      }
+    }
+  }, [
+    currentTeamName,
+    currentStep,
+    currentSelectedPotIndex,
+    remainingOpponentPots.length,
+  ]);
+
   const handleStartDraw = () => {
     // Reset the draw
     setCurrentPot(1);
+    setCurrentSelectedTeamIndexInDraw(-1);
     setCurrentTeam("");
     setCurrentStep("selectTeam");
     setDrawComplete(false);
     setPotProgress({ 1: 0, 2: 0, 3: 0, 4: 0 });
     setActiveTab("pot1");
+    setRemainingOpponentPots([]);
+    setProcessedOpponentPots([]);
+    setSelectedOpponents({ home: "", away: "" });
+
+    // Reset draw results
+    const initialResults: Record<string, any> = {};
+    Object.entries(team_pots).forEach(([pot, teams]) => {
+      teams.forEach((team) => {
+        initialResults[team] = {
+          pot: pot,
+          opponents: {
+            pot1: { home: "", away: "" },
+            pot2: { home: "", away: "" },
+            pot3: { home: "", away: "" },
+            pot4: { home: "", away: "" },
+          },
+        };
+      });
+    });
+    setDrawResults(initialResults);
   };
 
   const handleSelectTeam = () => {
-    // Get available teams from current pot that haven't been processed yet
-    const potKey = `pot${currentPot}` as keyof typeof TEAMS_DATA;
-    const availableTeams = TEAMS_DATA[potKey].filter((team) => {
-      const teamData = drawResults[team];
-      const potOpponents = teamData?.opponents[`pot${currentPot}`];
-      return !(potOpponents?.home && potOpponents?.away);
-    });
-
-    if (availableTeams.length === 0) {
-      // Move to next pot if all teams in current pot are processed
-      if (currentPot < 4) {
-        setCurrentPot((prev) => prev + 1);
-        setActiveTab(`pot${currentPot + 1}`);
-        setCurrentStep("selectTeam");
-      } else {
-        setDrawComplete(true);
+    // We do not increment the index if we are starting the draw
+    if (!startDraw) {
+      // If we selected all the teams from current pot we process the next one
+      setCurrentSelectedTeamIndexInDraw((prev) => prev + 1);
+      if (
+        currentSelectedTeamIndexInDraw % 9 === 0 &&
+        currentSelectedTeamIndexInDraw > 0
+      ) {
+        // Move to next pot if all teams in current pot are processed
+        if (currentSelectedPotIndex < 4) {
+          setCurrentPot((prev) => prev + 1);
+          setActiveTab(`pot${currentSelectedPotIndex + 1}`);
+          setCurrentStep("selectTeam");
+        } else {
+          setDrawComplete(true);
+        }
+        return;
       }
-      return;
     }
 
-    // Randomly select a team from available teams
-    const randomIndex = Math.floor(Math.random() * availableTeams.length);
-    const selectedTeam = availableTeams[randomIndex];
-    setCurrentTeam(selectedTeam);
-
-    // Generate admissible opponents (simplified for demo)
-    generateAdmissibleOpponents(selectedTeam);
-
+    const selectedTeamName = draw.getSelectedTeamName(
+      currentSelectedTeamIndexInDraw
+    );
+    setCurrentTeam(selectedTeamName);
+    setRemainingOpponentPots([]); // Reset to trigger the useEffect
+    setProcessedOpponentPots([]);
     setCurrentStep("showOpponents");
+    setStartDraw(false); // Set to false after the first draw
   };
 
-  const generateAdmissibleOpponents = (team: string) => {
-    // In a real implementation, this would use complex logic to determine valid opponents
-    // For this demo, we'll use a simplified approach
-    const potKey = `pot${currentPot}` as keyof typeof TEAMS_DATA;
-    const potOpponents = TEAMS_DATA[potKey].filter(
-      (t) =>
-        t !== team &&
-        !Object.values(drawResults[team]?.opponents || {}).some(
-          (opp) => opp.home === t || opp.away === t
+  const handleShowOpponents = () => {
+    // Generate admissible opponents for the current opponent pot
+    setAdmissibleOpponents(
+      draw
+        .getAdmissibleMatchups(
+          currentSelectedTeamIndexInDraw,
+          currentOpponentPotIndex
         )
+        .map((home_away) => home_away.matchups)
     );
 
-    setAdmissibleOpponents(potOpponents);
+    setCurrentStep("drawOpponents");
   };
 
   const handleDrawOpponents = () => {
-    if (admissibleOpponents.length < 2) return;
+    if (admissibleOpponents.length === 0) {
+      // raise error
+      alert("Not enough admissible opponents available.");
+      return;
+    }
 
-    // Randomly select two opponents
-    const shuffled = [...admissibleOpponents].sort(() => 0.5 - Math.random());
-    const home = shuffled[0];
-    const away = shuffled[1];
+    // Get home and away selected opponents
+    const selectedMatchup = draw.getSelectedMatchups(
+      currentSelectedTeamIndexInDraw,
+      currentOpponentPotIndex
+    );
+    const home = selectedMatchup.matchups[0];
+    const away = selectedMatchup.matchups[1];
 
-    setSelectedOpponents({ home, away });
+    setSelectedOpponents({
+      home,
+      away,
+    });
 
     // Update draw results
-    const potKey = `pot${currentPot}` as keyof typeof TEAMS_DATA;
+    const potKey =
+      `pot${currentOpponentPotIndex}` as keyof (typeof drawResults)[string]["opponents"];
 
     // Update current team's opponents
     const updatedResults = { ...drawResults };
-    updatedResults[currentTeam].opponents[potKey] = { home, away };
+    updatedResults[currentTeamName].opponents[potKey] = { home, away };
 
     // Update opponents' records
-    updatedResults[home].opponents[`pot${currentPot}`].away = currentTeam;
-    updatedResults[away].opponents[`pot${currentPot}`].home = currentTeam;
+    updatedResults[home].opponents[`pot${currentSelectedPotIndex}`].away =
+      currentTeamName;
+    updatedResults[away].opponents[`pot${currentSelectedPotIndex}`].home =
+      currentTeamName;
 
     setDrawResults(updatedResults);
 
     // Update progress for current pot
     setPotProgress((prev) => ({
       ...prev,
-      [currentPot]: prev[currentPot] + 1,
+      [currentOpponentPotIndex]: prev[currentOpponentPotIndex] + 1,
     }));
 
-    setCurrentStep("drawOpponents");
+    // Mark this opponent pot as processed
+    setProcessedOpponentPots((prev) => [...prev, currentOpponentPotIndex]);
 
-    // After a delay, move to next team
-    setTimeout(() => {
-      setCurrentTeam("");
-      setCurrentStep("selectTeam");
-    }, 2000);
+    // Remove this pot from remaining pots
+    setRemainingOpponentPots((prev) =>
+      prev.filter((pot) => pot !== currentOpponentPotIndex)
+    );
+
+    // If there are more opponent pots to process
+    if (remainingOpponentPots.length > 1) {
+      // Move to the next opponent pot
+      const nextPot = remainingOpponentPots.find(
+        (pot) => pot !== currentOpponentPotIndex
+      );
+      if (nextPot) {
+        setCurrentOpponentPotIndex(nextPot);
+        // Reset for next opponent selection
+        setAdmissibleOpponents([]);
+        setCurrentStep("showOpponents");
+      }
+    } else {
+      // All opponent pots for this team have been processed, move to next team
+      setTimeout(() => {
+        setCurrentTeam("");
+        setCurrentStep("selectTeam");
+      }, 1000);
+    }
   };
 
   const renderTeamOpponents = (team: string) => {
@@ -215,7 +275,10 @@ export function ChampionsLeagueSimulator() {
     if (!teamData) return null;
 
     return (
-      <tr className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors h-8">
+      <tr
+        key={team}
+        className="border-b border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors h-8"
+      >
         <td className="px-4 py-1 font-medium whitespace-nowrap">{team}</td>
         <td className="px-2 py-1">
           {teamData.opponents.pot1.home && (
@@ -352,7 +415,7 @@ export function ChampionsLeagueSimulator() {
                 </Button>
               </div>
 
-              {currentTeam && (
+              {currentTeamName && (
                 <div className="mt-4 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
                   <div className="flex items-center justify-center space-x-2 mb-3">
                     <Shield className="h-5 w-5 text-[#0e1e5b] dark:text-[#3b82f6]" />
@@ -360,29 +423,64 @@ export function ChampionsLeagueSimulator() {
                   </div>
 
                   <div className="flex items-center justify-center space-x-4 mb-3">
-                    <Badge className={`${getPotColor(currentPot)} text-white`}>
-                      Pot {currentPot}
+                    <Badge
+                      className={`${getPotColor(
+                        currentSelectedPotIndex
+                      )} text-white`}
+                    >
+                      Pot {currentSelectedPotIndex}
                     </Badge>
                     <Badge variant="outline" className="text-sm font-normal">
-                      {currentTeam}
+                      {currentTeamName}
                     </Badge>
                   </div>
+
+                  {currentStep === "showOpponents" && (
+                    <div className="mt-2 text-center">
+                      <Badge variant="outline" className="bg-slate-100 text-xs">
+                        Processing Pot {currentOpponentPotIndex}
+                      </Badge>
+                      {processedOpponentPots.length > 0 && (
+                        <div className="mt-1 text-xs text-slate-500">
+                          Processed: {processedOpponentPots.join(", ")}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {currentStep === "showOpponents" && (
                     <div className="mt-4 space-y-3">
                       <div className="flex items-center space-x-2">
                         <BarChart4 className="h-4 w-4 text-[#0e1e5b] dark:text-[#3b82f6]" />
-                        <p className="font-medium">Admissible Opponents:</p>
+                        <p className="font-medium">Finding Opponents...</p>
+                      </div>
+                      <Button
+                        onClick={handleShowOpponents}
+                        className="w-full mt-4 bg-[#cfa749] hover:bg-[#ddb85a] text-[#0e1e5b]"
+                        size="sm"
+                      >
+                        <Dices className="mr-2 h-4 w-4" /> Show Opponents
+                      </Button>
+                    </div>
+                  )}
+
+                  {currentStep === "drawOpponents" && (
+                    <div className="mt-4 space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <BarChart4 className="h-4 w-4 text-[#0e1e5b] dark:text-[#3b82f6]" />
+                        <p className="font-medium">
+                          Admissible Opponents (Pot {currentOpponentPotIndex}):
+                        </p>
                       </div>
                       <div className="bg-white dark:bg-slate-900 rounded-md border border-slate-200 dark:border-slate-700 p-2">
                         <ul className="text-sm space-y-1 max-h-40 overflow-y-auto">
-                          {admissibleOpponents.map((opponent) => (
+                          {admissibleOpponents.map((opponent, idx) => (
                             <li
-                              key={opponent}
+                              key={`${opponent[0]}-${opponent[1]}-${idx}`}
                               className="px-2 py-1.5 bg-slate-50 dark:bg-slate-800 rounded-md flex items-center"
                             >
                               <Shield className="h-3.5 w-3.5 mr-2 text-slate-400" />
-                              {opponent}
+                              {opponent[0]} - {opponent[1]}
                             </li>
                           ))}
                         </ul>
@@ -397,7 +495,7 @@ export function ChampionsLeagueSimulator() {
                     </div>
                   )}
 
-                  {currentStep === "drawOpponents" && (
+                  {selectedOpponents.home && selectedOpponents.away && (
                     <div className="mt-4 space-y-3">
                       <div className="flex items-center space-x-2">
                         <Trophy className="h-4 w-4 text-[#cfa749]" />
@@ -443,7 +541,6 @@ export function ChampionsLeagueSimulator() {
                       <Progress
                         value={(potProgress[pot] / 9) * 100}
                         className="h-2"
-                        indicatorClassName={getPotColor(pot)}
                       />
                     </div>
                   ))}
@@ -519,16 +616,22 @@ export function ChampionsLeagueSimulator() {
                     Draw in Progress
                   </AlertTitle>
                   <AlertDescription>
-                    {currentPot === 1
+                    {currentTeamName
+                      ? `Drawing opponents for ${currentTeamName} (Pot ${currentSelectedPotIndex})${
+                          currentOpponentPotIndex
+                            ? ` - Processing Pot ${currentOpponentPotIndex}`
+                            : ""
+                        }`
+                      : currentSelectedPotIndex === 1
                       ? "Drawing opponents for Pot 1 teams"
                       : `Pot ${
-                          currentPot - 1
-                        } complete. Drawing opponents for Pot ${currentPot} teams`}
+                          currentSelectedPotIndex - 1
+                        } complete. Drawing opponents for Pot ${currentSelectedPotIndex} teams`}
                   </AlertDescription>
                 </Alert>
               )}
 
-              {["pot1", "pot2", "pot3", "pot4"].map((pot, index) => (
+              {["pot1", "pot2", "pot3", "pot4"].map((pot) => (
                 <TabsContent key={pot} value={pot} className="m-0">
                   <div className="overflow-x-auto rounded-md border border-slate-200 dark:border-slate-800">
                     <div className="max-h-[420px] overflow-y-auto">
@@ -624,7 +727,7 @@ export function ChampionsLeagueSimulator() {
                           </tr>
                         </thead>
                         <tbody>
-                          {TEAMS_DATA[pot as keyof typeof TEAMS_DATA].map(
+                          {team_pots[pot as keyof typeof team_pots]?.map(
                             (team) => renderTeamOpponents(team)
                           )}
                         </tbody>
